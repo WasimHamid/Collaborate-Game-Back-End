@@ -1,13 +1,34 @@
 <h1>{{title}}</h1>
 <p>Welcome to {{title}}</p>
 
-
-<input />
-<button />
+<input id="inputValue" type="text" key="Write Your Task" />
+<br>
+<button onclick="onAddToDo()">Submit Task</button>
+<ul></ul>
+</form>
 
 <script>
 
-    //fetch '/todo'
+    function onAddToDo() {
+        var sendToDo = document.getElementById("inputValue");
+        fetch("./routes/todo"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json" 
+            "Accept": "application/json"
+            }
+            //body: JSON.stringify
+        }
+    }
 
+//create input field
+// - give it an id
+
+
+// create submit button
+// on click, button will:
+// - send inputValue as POST
+// - fetch all items in To Do List (task db)
+// - GET return as list in body
 
 </script>
