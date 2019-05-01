@@ -18,7 +18,7 @@ io.on("connection", socket => {
     let newRoom = {};
     newRoom.id = getNewRoomId();
     newRoom.name = `room ${rooms.length + 1}`;
-    newRoom.teams = { red: [], blue: [], yellow: [], green: [] };
+    newRoom.players = [];
 
     console.log(newRoom);
     rooms.push(newRoom);
@@ -29,23 +29,46 @@ io.on("connection", socket => {
     console.log(data);
     let room = rooms.find(obj => obj.id == data);
     socket.emit("enterGameRoom", room);
+    socket.emit("gameMessage", `you have entered room ${room.id}`);
+
+    socket.join(`${room.id}`);
+    socket.broadcast
+      .to(`${room.id}`)
+      .emit("gameMessage", "a new player has joined");
   });
 
   socket.on("joinTeam", data => {
     const { joinedRoom, team } = data;
     let roomIndex = rooms.findIndex(obj => obj.id === joinedRoom);
-    rooms = [
-      ...rooms.slice(0, roomIndex),
-      {
-        ...rooms[roomIndex],
-        teams: {
-          ...rooms[roomIndex].teams,
-          [team]: [...rooms[roomIndex].teams[team], socket.id]
+    let playerIndex = rooms[roomIndex].players.findIndex(
+      obj => obj.id === socket.id
+    );
+    if (playerIndex === -1) {
+      rooms = [
+        ...rooms.slice(0, roomIndex),
+        {
+          ...rooms[roomIndex],
+          players: [...rooms[roomIndex].players, { id: socket.id, team }]
         },
         ...rooms.slice(roomIndex + 1)
-      }
-    ];
-    console.log(rooms);
+      ];
+      socket.emit(
+        "gameMessage",
+        `you are in the ${team} team in room ${joinedRoom}`
+      );
+    } else {
+      socket.emit(
+        "gameMessage",
+        `whoops, you are already on the ${
+          rooms[roomIndex].players[playerIndex].team
+        } team in room ${joinedRoom}`
+      );
+    }
+    console.log(rooms[0].players);
+  });
+
+  socket.on("startGame", () => {
+    socket.emit("gameMessage", `you are`);
   });
 });
 
