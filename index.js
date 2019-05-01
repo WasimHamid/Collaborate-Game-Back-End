@@ -10,6 +10,9 @@ function getNewRoomId() {
 
 io.on("connection", socket => {
   console.log("a user connected");
+  socket.on("disconnect", () => {
+    console.log("user disconnected");
+  });
 
   socket.on("makeGameRoom", () => {
     let newRoom = {};
@@ -26,6 +29,23 @@ io.on("connection", socket => {
     console.log(data);
     let room = rooms.find(obj => obj.id == data);
     socket.emit("enterGameRoom", room);
+  });
+
+  socket.on("joinTeam", data => {
+    const { joinedRoom, team } = data;
+    let roomIndex = rooms.findIndex(obj => obj.id === joinedRoom);
+    rooms = [
+      ...rooms.slice(0, roomIndex),
+      {
+        ...rooms[roomIndex],
+        teams: {
+          ...rooms[roomIndex].teams,
+          [team]: [...rooms[roomIndex].teams[team], socket.id]
+        },
+        ...rooms.slice(roomIndex + 1)
+      }
+    ];
+    console.log(rooms);
   });
 });
 
