@@ -8,7 +8,9 @@ function getNewRoomId() {
   return Math.floor(Math.random() * 9000 + 1000);
 }
 
-io.on("connection", socket => {
+io.on("connection", onConnection(socket));
+
+function onConnection(socket) {
   console.log("a user connected");
   socket.on("disconnect", () => {
     console.log("user disconnected");
@@ -70,7 +72,7 @@ io.on("connection", socket => {
   socket.on("startGame", () => {
     socket.emit("gameMessage", `you are`);
   });
-});
+}
 
 http.listen(6001, function() {
   console.log("listening on *:6001");
