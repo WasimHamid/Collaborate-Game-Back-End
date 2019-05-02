@@ -4,6 +4,22 @@ var io = require("socket.io")(http);
 
 let rooms = [];
 
+const testQuestion = {
+  question: "Reorder the alcoholic drinks from strongest to weakest.",
+  cards: [
+    { text: "Barcardi Spiced Rum", order: 3 },
+    { text: "Grouse Scotch Whiskey", order: 1 },
+    { text: "Bailey’s Original Irish", order: 4 },
+    { text: "Smirnoff red Label Vodka", order: 2 }
+  ],
+  answer: [
+    "Grosue Scotch Whiskey 40%",
+    "Smirnoff Red label Vodka 37.5%",
+    "Barcardi Spiced Rum 35%",
+    "Bailey’s Original Irish 17%"
+  ]
+};
+
 function getNewRoomId() {
   return Math.floor(Math.random() * 9000 + 1000);
 }
@@ -20,6 +36,10 @@ function onConnection(socket) {
   socket.on("makeGameRoom", teams => makeGameRoom(socket, teams));
   socket.on("enterGameRoom", data => enterGameRoom(data, socket));
   socket.on("joinTeam", data => joinTeam(data, socket));
+  socket.on("sendTestQuestion", roomNumber =>
+    sendTestQuestion(roomNumber, socket)
+  );
+
   socket.on("startGame", joinedRoom => {
     io.in(`${joinedRoom}`).emit(
       "gameMessage",
@@ -88,6 +108,17 @@ function joinTeam(data, socket) {
     );
   }
   // console.log(rooms[0].players);
+}
+
+function sendTestQuestion(roomNumber, socket) {
+  let room = rooms.find(obj => obj.id === roomNumber);
+  let teams = Object.keys(room.teams);
+  teams.map(team => {
+    room.teams[team].map((player, i) => {
+      console.log(player);
+      socket.to("" + player.id).emit("gameMessage", testQuestion.cards[i].text);
+    });
+  });
 }
 
 http.listen(6001, function() {
