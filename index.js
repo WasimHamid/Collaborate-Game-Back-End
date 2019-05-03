@@ -46,6 +46,7 @@ function onConnection(socket) {
       `game has started in ${joinedRoom}`
     );
   });
+  socket.on("deleteGameRoom", room => deleteGameRoom(socket, room));
 }
 
 function makeGameRoom(socket, teams) {
@@ -54,6 +55,7 @@ function makeGameRoom(socket, teams) {
   newRoom.id = getNewRoomId();
   newRoom.name = `room ${rooms.length + 1}`;
   newRoom.teams = {};
+  newRoom.players = [];
 
   for (var i = 0; i < teams; i++) {
     newRoom.teams = { ...newRoom.teams, [teamColors[i]]: [] };
@@ -65,14 +67,34 @@ function makeGameRoom(socket, teams) {
 }
 
 function enterGameRoom(data, socket) {
-  console.log(data);
-  let room = rooms.find(obj => obj.id == data);
-  socket.emit("enterGameRoom", room);
-  socket.emit("gameMessage", `you have entered room ${room.id}`);
-  socket.join(`${room.id}`);
-  socket.broadcast
-    .to(`${room.id}`)
-    .emit("gameMessage", "a new player has joined");
+  let room = rooms.find(obj => obj.id === parseInt(data.room));
+  let roomIndex = rooms.findIndex(obj => obj.id === parseInt(data.room));
+
+  if (roomIndex !== -1) {
+    rooms = [
+      ...rooms.slice(0, roomIndex),
+      {
+        ...rooms[roomIndex],
+        players: [
+          ...rooms[roomIndex].players,
+          { id: socket.id, name: data.name }
+        ]
+      },
+      ...rooms.slice(roomIndex + 1)
+    ];
+  }
+  console.log("data.room: ", data.room);
+  console.log("players", rooms[roomIndex].players);
+  console.log("rooms: ", rooms);
+  console.log("index", roomIndex);
+
+  // socket.emit("enterGameRoom", room);
+  // socket.emit("gameMessage", `you have entered room ${room.id}`);
+  // socket.join(`${room.id}`);
+  // socket.broadcast
+  //   .to(`${room.id}`)
+  //   .emit("gameMessage", "a new player has joined");
+  // console.log("room", room);
 }
 
 function joinTeam(data, socket) {
@@ -119,6 +141,12 @@ function sendTestQuestion(roomNumber, socket) {
       socket.to("" + player.id).emit("gameMessage", testQuestion.cards[i].text);
     });
   });
+}
+
+function deleteGameRoom(socket, roomNumber) {
+  let roomIndex = rooms.findIndex(obj => obj.id === roomNumber);
+  rooms = [...rooms.slice(0, roomIndex), ...rooms.slice(roomIndex + 1)];
+  console.log("rooms: ", rooms);
 }
 
 http.listen(6001, function() {
