@@ -169,7 +169,7 @@ function recordPlayerAnswer(
   { roomId, team, playersAnswer, correctAnswer }
 ) {
   let roomIndex = rooms.findIndex(obj => obj.id === parseInt(roomId));
-
+  console.log("recordPlayerAnswer");
   if (playersAnswer === correctAnswer) {
     // give points to players team
     rooms = [
@@ -183,6 +183,9 @@ function recordPlayerAnswer(
       },
       ...rooms.slice(roomIndex + 1)
     ];
+    console.log("recordPlayerAnswer correct");
+
+    socket.emit("showScore", "" + rooms[roomIndex].scores[team]);
     socket.emit("gameMessage", "correct");
   } else {
     // tell them they are shit
