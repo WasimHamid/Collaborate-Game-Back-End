@@ -10,5 +10,16 @@ module.exports = [
     instruction: "most alcoholic --> least alcoholic",
     tidbit:
       "did you know? famouse grouse is the best-selling Scotch whisky in Scotland"
+  },
+  {
+    question: "Reorder the phrase from the film 'Pulp Fiction'",
+    cards: [
+      { text: "bring", order: 1 },
+      { text: "out", order: 2 },
+      { text: "the", order: 3 },
+      { text: "gimp", order: 4 }
+    ],
+    instruction: "start --> end",
+    tidbit: "did you know? tarnti"
   }
 ];
