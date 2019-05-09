@@ -4,7 +4,7 @@ var io = require("socket.io")(http);
 
 let rooms = [];
 
-const testQuestions = require("./data2");
+const testQuestions = require("./data3");
 
 function getNewRoomId() {
   return Math.floor(Math.random() * 9000 + 1000);
@@ -21,10 +21,9 @@ function onConnection(socket) {
   });
 
   socket.on("makeGameRoom", teams => makeGameRoom(socket, teams));
-  socket.on("enterGameRoom", data => enterGameRoom(data, socket));
-  socket.on("joinTeam", data => joinTeam(data, socket));
-  socket.on("sendTestQuestion", roomNumber => sendQuestion(roomNumber, socket));
-  socket.on("startGame", joinedRoom => startGame(socket, joinedRoom));
+  socket.on("enterGameRoom", data => enterGameRoom(socket, data));
+  socket.on("joinTeam", data => joinTeam(socket, data));
+  socket.on("startGame", roomNumber => startGame(socket, roomNumber));
   socket.on("deleteGameRoom", room => deleteGameRoom(socket, room));
   socket.on("sendAnswer", answer => recordPlayerAnswer(socket, answer));
   socket.on("sendNextQuestion", roomNumber =>
@@ -54,7 +53,7 @@ function makeGameRoom(socket, teams) {
   console.log(`new room ${newRoom.id} has been created`);
 }
 
-function enterGameRoom(data, socket) {
+function enterGameRoom(socket, data) {
   let room = rooms.find(obj => obj.id === parseInt(data.room));
   let roomIndex = rooms.findIndex(obj => obj.id === parseInt(data.room));
 
@@ -82,7 +81,7 @@ function enterGameRoom(data, socket) {
   }
 }
 
-function joinTeam(data, socket) {
+function joinTeam(socket, data) {
   const { joinedRoom, team, name } = data;
   let roomIndex = rooms.findIndex(obj => obj.id === joinedRoom);
 
@@ -150,7 +149,7 @@ function sendConsecutiveQuestions(socket, roomNumber) {
   let roomIndex = rooms.findIndex(obj => obj.id === roomNumber);
 
   if (rooms[roomIndex].questionNumber < testQuestions.length) {
-    sendQuestion(roomNumber, socket, rooms[roomIndex].questionNumber);
+    sendQuestion(socket, roomNumber, rooms[roomIndex].questionNumber);
     rooms = [
       ...rooms.slice(0, roomIndex),
       {
@@ -164,12 +163,12 @@ function sendConsecutiveQuestions(socket, roomNumber) {
   }
 }
 
-function sendQuestion(roomNumber, socket, questionNumber = 0) {
+function sendQuestion(socket, roomNumber, questionNumber = 0) {
   let room = rooms.find(obj => obj.id === roomNumber);
   let teams = Object.keys(room.teams);
   let randomArray = shuffle([0, 1, 2, 3]);
 
-  teams.map((team, index) => {
+  teams.map(team => {
     room.teams[team].map((player, i) => {
       socket.to(player.id).emit("cardMessage", {
         ...testQuestions[questionNumber].cards[randomArray[i]],
