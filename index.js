@@ -32,7 +32,7 @@ function onConnection(socket) {
 }
 
 function makeGameRoom(socket, teams) {
-  let teamColors = ["red", "lightblue", "yellow", "lightgreen"];
+  let teamColors = ["#EB4511", "#23C9FF", "#D2FF28", "#FFAD05"];
   let newRoom = {};
   newRoom.id = getNewRoomId();
   newRoom.name = `room ${rooms.length + 1}`;
