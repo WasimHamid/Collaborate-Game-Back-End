@@ -345,6 +345,6 @@ function startGame(socket, roomNumber) {
   ];
 }
 
-http.listen(6001, () => {
+http.listen(process.env.PORT || 6001, () => {
   console.log("listening on *:6001");
 });

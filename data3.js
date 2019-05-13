@@ -1,6 +1,6 @@
 module.exports = [
   {
-    question: "jersey numbers, in numerical order of the these footballers",
+    question: "order the football players from lowest to highest shirt number",
     cards: [
       { text: "Lionel Messi", order: 4 },
       { text: "Banks", order: 1 },
@@ -12,7 +12,7 @@ module.exports = [
   },
 
   {
-    question: "Continents largest to smallest",
+    question: "order the continents from largest to smallest",
     cards: [
       { text: "Asia", order: 1 },
       { text: "Africa", order: 2 },
@@ -24,7 +24,7 @@ module.exports = [
   },
 
   {
-    question: "Highest grossing movies of all time as of 2018",
+    question: "order the movies from highes grossing to lowest grossing",
     cards: [
       { text: "Avatar", order: 1 },
       { text: "Titanic", order: 2 },
@@ -36,7 +36,7 @@ module.exports = [
   },
 
   {
-    question: "Inventions in order of invention (start with earliest)",
+    question: "order the invetions from earliest to latest date of invention",
     cards: [
       { text: "telescope", order: 1 },
       { text: "spinning jenny", order: 2 },
@@ -48,7 +48,7 @@ module.exports = [
   },
 
   {
-    question: "List capitals from shortest word to longest word",
+    question: "order the capitals from from least to most letters in name",
     cards: [
       { text: "Russia", order: 1 },
       { text: "Brazil", order: 2 },
@@ -60,7 +60,7 @@ module.exports = [
   },
 
   {
-    question: "Harry Potter spells from strongest to weakest",
+    question: "order the Harry Potter spells from strongest to weakest",
     cards: [
       { text: "Expecto Patronum", order: 1 },
       { text: "Avada kedavra", order: 2 },
@@ -72,7 +72,7 @@ module.exports = [
   },
 
   {
-    question: "Bootcamper 2 heights shortest to tallest",
+    question: "order the Bootcamper 2 heights from shortest to tallest",
     cards: [
       { text: "Karen", order: 1 },
       { text: "Kim", order: 2 },
@@ -84,7 +84,7 @@ module.exports = [
   },
 
   {
-    question: "Most UK number one hits - most to least",
+    question: "order the Musicians - most to least number 1 hits",
     cards: [
       { text: "Elvis", order: 1 },
       { text: "Beatles", order: 2 },
