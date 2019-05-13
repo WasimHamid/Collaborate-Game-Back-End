@@ -7,7 +7,7 @@ module.exports = [
       { text: "Ronaldo", order: 2 },
       { text: "Suarez", order: 3 }
     ],
-    instruction: "lowest number --> highest number",
+    instruction: ["lowest number", "highest number"],
     tidbit: "Because this is really important to know"
   },
 
@@ -19,7 +19,7 @@ module.exports = [
       { text: "North America", order: 3 },
       { text: "South America", order: 4 }
     ],
-    instruction: "largest land mass --> smallest land mass",
+    instruction: ["largest land mass", "smallest land mass"],
     tidbit: "Driving across them would take a long time"
   },
 
@@ -31,7 +31,7 @@ module.exports = [
       { text: "Star Wars: The Force Awakens", order: 3 },
       { text: "Avengers: Infinity War", order: 4 }
     ],
-    instruction: "highest grossing --> lowest grossing",
+    instruction: ["highest grossing", "lowest grossing"],
     tidbit: "Combined, they have earned "
   },
 
@@ -43,7 +43,7 @@ module.exports = [
       { text: "morse code", order: 3 },
       { text: "penny farthing", order: 4 }
     ],
-    instruction: "oldest --> newest",
+    instruction: ["oldest", "newest"],
     tidbit: "... --- ..."
   },
 
@@ -55,7 +55,7 @@ module.exports = [
       { text: "Iceland", order: 3 },
       { text: "New Zealand", order: 4 }
     ],
-    instruction: "fewest letters --> most letters",
+    instruction: ["fewest letters", "most letters"],
     tidbit: "It's not Lima"
   },
 
@@ -67,7 +67,7 @@ module.exports = [
       { text: "Imperius curse", order: 3 },
       { text: "Cruciatus curse", order: 4 }
     ],
-    instruction: "strongest --> weekest",
+    instruction: ["strongest", "weekest"],
     tidbit: "Abracadabra"
   },
 
@@ -79,8 +79,8 @@ module.exports = [
       { text: "Rhys", order: 3 },
       { text: "Ben", order: 4 }
     ],
-    instruction: "shortest --> tallest",
-    tidbit: "feet and inches "
+    instruction: ["shortest", "tallest"],
+    tidbit: "feet and inches"
   },
 
   {
@@ -91,7 +91,7 @@ module.exports = [
       { text: "Cliff Richard", order: 3 },
       { text: "ABBA", order: 4 }
     ],
-    instruction: "most number 1s  --> least number 1s",
+    instruction: ["most number 1s", "least number 1s"],
     tidbit: "Hey Jude"
   },
 
@@ -104,7 +104,7 @@ module.exports = [
       { text: "The Card Players by Paul Cezane", order: 3 },
       { text: "Nafea Faa Ipoipo by Paul Gauguin", order: 4 }
     ],
-    instruction: "most expensive --> least expensive",
+    instruction: ["most expensive", "least expensive"],
     tidbit: "Dogs Playing Poker anyone?"
   },
 
@@ -116,7 +116,7 @@ module.exports = [
       { text: "Blue Krait", order: 3 },
       { text: "Taipan", order: 4 }
     ],
-    instruction: "most venomous --> least venomous",
+    instruction: ["most venomous", "least venomous"],
     tidbit: "ssssssssssssssssss"
   }
 ];

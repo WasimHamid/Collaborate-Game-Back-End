@@ -2,9 +2,12 @@ var app = require("express")();
 var http = require("http").Server(app);
 var io = require("socket.io")(http);
 
-let rooms = [];
-
 const testQuestions = require("./data3");
+
+let users = [];
+
+let rooms = [];
+let userIds = {};
 
 function getNewRoomId() {
   return Math.floor(Math.random() * 9000 + 1000);
@@ -16,16 +19,21 @@ io.on("connection", onConnection);
 // this sets op socket to listen and calls each function when it hears the socket id
 function onConnection(socket) {
   console.log("a user connected");
+  users.push({ id: socket.id, connected: true });
   socket.on("disconnect", () => {
+    var usersIndex = users.findIndex(user => user.id === socket.id);
+    users[usersIndex] = { ...users[usersIndex], id: "", connected: false };
     console.log("user disconnected");
   });
-
+  // socket.on("login", name => console.log(name));
   socket.on("makeGameRoom", teams => makeGameRoom(socket, teams));
   socket.on("enterGameRoom", data => enterGameRoom(socket, data));
   socket.on("joinTeam", data => joinTeam(socket, data));
   socket.on("startGame", roomNumber => startGame(socket, roomNumber));
   socket.on("deleteGameRoom", room => deleteGameRoom(socket, room));
   socket.on("sendAnswer", answer => recordPlayerAnswer(socket, answer));
+  socket.on("updateCardOptions", info => updateCardOptions(socket, info));
+  socket.on("getRoundScore", roomNumber => sendRoundScore(socket, roomNumber));
   socket.on("sendNextQuestion", roomNumber =>
     sendConsecutiveQuestions(socket, roomNumber)
   );
@@ -33,23 +41,37 @@ function onConnection(socket) {
 
 function makeGameRoom(socket, teams) {
   let teamColors = ["#EB4511", "#23C9FF", "#D2FF28", "#FFAD05"];
+
   let newRoom = {};
   newRoom.id = getNewRoomId();
   newRoom.name = `room ${rooms.length + 1}`;
   newRoom.teams = {};
   newRoom.scores = {};
+  newRoom.roundScores = {};
   newRoom.players = [];
   newRoom.questionNumber = 0;
   newRoom.host = socket.id;
+  newRoom.currentChoice = {};
+  newRoom.currentChoiceCopy = {};
 
   for (var i = 0; i < teams; i++) {
     newRoom.teams = { ...newRoom.teams, [teamColors[i]]: [] };
     newRoom.scores = { ...newRoom.scores, [teamColors[i]]: 0 };
+    newRoom.roundScores = { ...newRoom.scores, [teamColors[i]]: 0 };
+    newRoom.currentChoice = {
+      ...newRoom.currentChoice,
+      [teamColors[i]]: { 1: [], 2: [], 3: [], 4: [] }
+    };
+    newRoom.currentChoiceCopy = {
+      ...newRoom.currentChoice,
+      [teamColors[i]]: { 1: [], 2: [], 3: [], 4: [] }
+    };
   }
 
   rooms.push(newRoom);
   socket.emit("makeGameRoom", newRoom);
   socket.join(newRoom.id);
+  userIds = { ...userIds, ["host" + newRoom.id]: socket.id };
   console.log(`new room ${newRoom.id} has been created`);
 }
 
@@ -71,7 +93,7 @@ function enterGameRoom(socket, data) {
       "gameMessage",
       `Welcome to ${room.id}! please enter your name and join a team`
     );
-    socket.join(`${room.id}`);
+    socket.join(room.id);
     console.log(socket.id + " has joined " + room.id);
   } else {
     socket.emit(
@@ -149,6 +171,11 @@ function sendConsecutiveQuestions(socket, roomNumber) {
   let roomIndex = rooms.findIndex(obj => obj.id === roomNumber);
 
   if (rooms[roomIndex].questionNumber < testQuestions.length) {
+    //map over teams
+    // send round score
+    // add roundscore to gamescore
+    // clear round score
+
     sendQuestion(socket, roomNumber, rooms[roomIndex].questionNumber);
     rooms = [
       ...rooms.slice(0, roomIndex),
@@ -165,8 +192,12 @@ function sendConsecutiveQuestions(socket, roomNumber) {
 
 function sendQuestion(socket, roomNumber, questionNumber = 0) {
   let room = rooms.find(obj => obj.id === roomNumber);
+  let roomIndex = rooms.findIndex(obj => obj.id === roomNumber);
+
   let teams = Object.keys(room.teams);
   let randomArray = shuffle([0, 1, 2, 3]);
+
+  rooms[roomIndex].currentChoice = rooms[roomIndex].currentChoiceCopy;
 
   teams.map(team => {
     room.teams[team].map((player, i) => {
@@ -189,15 +220,76 @@ function deleteGameRoom(socket, roomNumber) {
   console.log(`room ${roomNumber} has been deleted`);
 }
 
+function updateCardOptions(socket, info) {
+  const { roomNumber, team, answer, cardText } = info;
+  let room = rooms.find(obj => obj.id === parseInt(roomNumber));
+  let roomIndex = rooms.findIndex(obj => obj.id === parseInt(roomNumber));
+
+  let arrayOfAnswerIndex = [1, 2, 3, 4].map(answer =>
+    rooms[roomIndex].currentChoice[team][answer].findIndex(
+      obj => obj.id === socket.id
+    )
+  );
+
+  let indexOfOldAnswer = arrayOfAnswerIndex.findIndex(i => i !== -1);
+  let oldAnswerKey = indexOfOldAnswer + 1;
+
+  console.log("indexOfOldAnswer", indexOfOldAnswer);
+  console.log("arrayOfAnswerIndex", arrayOfAnswerIndex);
+  console.log("oldAnswerboth", arrayOfAnswerIndex[indexOfOldAnswer]);
+  console.log("oldAnswerKey", oldAnswerKey);
+
+  if (rooms[roomIndex].currentChoice[team][answer].length < 1) {
+    if (indexOfOldAnswer !== -1) {
+      rooms[roomIndex].currentChoice[team][oldAnswerKey].splice(
+        arrayOfAnswerIndex[indexOfOldAnswer],
+        1
+      );
+    }
+    rooms = [
+      ...rooms.slice(0, roomIndex),
+      {
+        ...room,
+        currentChoice: {
+          ...room.currentChoice,
+          [team]: {
+            ...room.currentChoice[team],
+            [answer]: [
+              ...room.currentChoice[team][answer],
+              { cardText, id: socket.id }
+            ]
+          }
+        }
+      },
+      ...rooms.slice(roomIndex + 1)
+    ];
+  }
+
+  if (oldAnswerKey === answer) {
+    rooms[roomIndex].currentChoice[team][oldAnswerKey].splice(
+      arrayOfAnswerIndex[indexOfOldAnswer],
+      1
+    );
+  }
+
+  console.log(
+    "rooms[roomIndex].currentChoice[team]",
+    rooms[roomIndex].currentChoice[team]
+  );
+
+  room.teams[team].map(player => {
+    io.in(player.id).emit(
+      "updateCardOptions",
+      rooms[roomIndex].currentChoice[team]
+    );
+  });
+}
+
 function recordPlayerAnswer(
   socket,
-  { roomId, team, playersAnswer, correctAnswer }
+  { roomNumber, team, playersAnswer, correctAnswer }
 ) {
-  let roomIndex = rooms.findIndex(obj => obj.id === parseInt(roomId));
-
-  rooms[roomIndex].teams[team].forEach(player => {
-    io.in(player.id).emit("updateCardOptions", playersAnswer);
-  });
+  let roomIndex = rooms.findIndex(obj => obj.id === parseInt(roomNumber));
 
   if (playersAnswer === correctAnswer) {
     // give points to players team
@@ -205,9 +297,9 @@ function recordPlayerAnswer(
       ...rooms.slice(0, roomIndex),
       {
         ...rooms[roomIndex],
-        scores: {
-          ...rooms[roomIndex].scores,
-          [team]: rooms[roomIndex].scores[team] + 1
+        roundScores: {
+          ...rooms[roomIndex].roundScores,
+          [team]: rooms[roomIndex].roundScores[team] + 1
         }
       },
       ...rooms.slice(roomIndex + 1)
@@ -222,7 +314,24 @@ function recordPlayerAnswer(
   }
   console.log("team score", rooms[roomIndex].scores[team]);
   // need to send back room data to all people in room including host
-  socket.to(roomId).emit("updateHostRoom", rooms[roomIndex]);
+  socket.to(roomNumber).emit("updateHostRoom", rooms[roomIndex]);
+}
+
+function sendRoundScore(socket, roomNumber) {
+  let roomIndex = rooms.findIndex(obj => obj.id === roomNumber);
+
+  //map over teams
+  // send round score
+  // add roundscore to gamescore
+  // clear round score
+
+  // Object.keys(rooms[roomIndex].roundScores).map(team =>
+  //   rooms[roomIndex].teams[team].map(player =>
+  //     socket
+  //       .to(player.id)
+  //       .emit("scoreMessage", rooms[roomIndex].roundScores[team])
+  //   )
+  // );
 }
 
 function startGame(socket, roomNumber) {
