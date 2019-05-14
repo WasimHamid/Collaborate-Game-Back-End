@@ -38,6 +38,7 @@ function onConnection(socket) {
     sendConsecutiveQuestions(socket, roomNumber)
   );
 }
+
 function login(socket, uid) {
   socket.uid = uid;
   userIds[uid] = { connected: true };
@@ -216,11 +217,13 @@ function updateCardOptions(socket, info) {
 
   if (rooms[roomId].currentChoice[team][answer].length < 1) {
     if (indexOfOldAnswer !== -1) {
+      //delete previous answer
       rooms[roomId].currentChoice[team][oldAnswerKey].splice(
         arrayOfAnswerIndex[indexOfOldAnswer],
         1
       );
     }
+    // add new answer
     rooms[roomId] = {
       ...rooms[roomId],
       currentChoice: {
@@ -235,7 +238,7 @@ function updateCardOptions(socket, info) {
       }
     };
   }
-
+  // if answer same then remove it
   if (oldAnswerKey === answer) {
     rooms[roomId].currentChoice[team][oldAnswerKey].splice(
       arrayOfAnswerIndex[indexOfOldAnswer],
@@ -247,13 +250,25 @@ function updateCardOptions(socket, info) {
     "rooms[roomIndex].currentChoice[team]",
     rooms[roomId].currentChoice[team]
   );
-
+  // send updated options to team
   rooms[roomId].teams[team].map(player => {
     io.in(player.id).emit(
       "updateCardOptions",
       rooms[roomId].currentChoice[team]
     );
   });
+
+  if (
+    rooms[roomId].currentChoice[team][1] === 1 &&
+    rooms[roomId].currentChoice[team][2] === 1 &&
+    rooms[roomId].currentChoice[team][3] === 1 &&
+    rooms[roomId].currentChoice[team][4] === 1
+  ) {
+    // send message to allow submit
+    rooms[roomId].teams[team].map(player => {
+      io.in(player.id).emit("submitAllowed");
+    });
+  }
 }
 
 function recordPlayerAnswer(
