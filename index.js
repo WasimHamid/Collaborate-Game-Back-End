@@ -168,6 +168,7 @@ function sendConsecutiveQuestions(socket, roomId) {
 }
 
 function sendQuestion(socket, roomId, questionNumber = 0) {
+  rooms[roomId].currentChoice = rooms[roomId].currentChoiceCopy;
   let teams = Object.keys(rooms[roomId].teams);
 
   let randomArray = shuffle([0, 1, 2, 3]);
@@ -259,10 +260,10 @@ function updateCardOptions(socket, info) {
   });
 
   if (
-    rooms[roomId].currentChoice[team][1] === 1 &&
-    rooms[roomId].currentChoice[team][2] === 1 &&
-    rooms[roomId].currentChoice[team][3] === 1 &&
-    rooms[roomId].currentChoice[team][4] === 1
+    rooms[roomId].currentChoice[team][1].length === 1 &&
+    rooms[roomId].currentChoice[team][2].length === 1 &&
+    rooms[roomId].currentChoice[team][3].length === 1 &&
+    rooms[roomId].currentChoice[team][4].length === 1
   ) {
     // send message to allow submit
     rooms[roomId].teams[team].map(player => {
