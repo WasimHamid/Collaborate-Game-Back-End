@@ -37,6 +37,7 @@ function onConnection(socket) {
   socket.on("sendNextQuestion", roomNumber =>
     sendConsecutiveQuestions(socket, roomNumber)
   );
+  socket.on("submitTeamAnswer", data => onTeamSubmit(socket, data));
 }
 
 function login(socket, uid) {
@@ -169,6 +170,7 @@ function sendConsecutiveQuestions(socket, roomId) {
 
 function sendQuestion(socket, roomId, questionNumber = 0) {
   rooms[roomId].currentChoice = rooms[roomId].currentChoiceCopy;
+
   let teams = Object.keys(rooms[roomId].teams);
 
   let randomArray = shuffle([0, 1, 2, 3]);
@@ -200,7 +202,7 @@ function deleteGameRoom(socket, roomNumber) {
 }
 
 function updateCardOptions(socket, info) {
-  const { roomId, team, answer, cardText } = info;
+  const { roomId, team, answer, cardText, correctAnswer } = info;
 
   let arrayOfAnswerIndex = [1, 2, 3, 4].map(answer =>
     rooms[roomId].currentChoice[team][answer].findIndex(
@@ -233,7 +235,7 @@ function updateCardOptions(socket, info) {
           ...rooms[roomId].currentChoice[team],
           [answer]: [
             ...rooms[roomId].currentChoice[team][answer],
-            { cardText, id: socket.uid }
+            { cardText, answer, correctAnswer, id: socket.uid }
           ]
         }
       }
@@ -267,9 +269,19 @@ function updateCardOptions(socket, info) {
   ) {
     // send message to allow submit
     rooms[roomId].teams[team].map(player => {
-      io.in(player.id).emit("submitAllowed");
+      io.in(player.id).emit("submitAllowed", true);
+    });
+  } else {
+    rooms[roomId].teams[team].map(player => {
+      io.in(player.id).emit("submitAllowed", false);
     });
   }
+}
+
+function onTeamSubmit(socket, { roomId, team }) {
+  // see if answer is correct
+
+  console.log("current choice", rooms[roomId].teams[team].currentChoice);
 }
 
 function recordPlayerAnswer(
