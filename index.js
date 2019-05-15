@@ -25,9 +25,13 @@ function onConnection(socket) {
   });
 
   socket.on("login", uid => login(socket, uid));
+
   socket.on("notGotIdYet", () =>
     setTimeout(() => socket.emit("whoAreYou"), 1000)
   );
+
+  socket.on("removeUser", data => removeUser(socket, data));
+
 
   socket.on("makeGameRoom", data => makeGameRoom(socket, data));
   socket.on("enterGameRoom", data => enterGameRoom(socket, data));
@@ -48,6 +52,12 @@ function login(socket, uid) {
   userIds[uid] = { connected: true, currentSocket: socket.id };
   socket.join(uid);
   console.log("login: ", uid);
+}
+
+function removeUser(socket, { roomId, team, uid, i }) {
+  console.log("user removed");
+  rooms[roomId].teams[team].splice(i, 1);
+  socket.emit("updateHostRoom", rooms[roomId]);
 }
 
 function makeGameRoom(socket, { numberOfTeams, uid }) {
