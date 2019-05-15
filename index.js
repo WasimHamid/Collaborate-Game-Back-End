@@ -5,7 +5,6 @@ var io = require("socket.io")(http);
 const testQuestions = require("./energiser");
 
 let rooms = {};
-let hostIds = {};
 let userIds = {};
 
 function getNewRoomId() {
@@ -18,21 +17,28 @@ io.on("connection", onConnection);
 // this sets op socket to listen and calls each function when it hears the socket id
 function onConnection(socket) {
   console.log("a user connected");
+  socket.emit("whoAreYou");
 
   socket.on("disconnect", () => {
-    userIds[socket.uid] = { connected: false };
+    userIds[socket.uid] = { connected: false, currentsocket: "" };
     console.log("user disconnected");
   });
 
   socket.on("login", uid => login(socket, uid));
+
+  socket.on("notGotIdYet", () =>
+    setTimeout(() => socket.emit("whoAreYou"), 1000)
+  );
+
   socket.on("removeUser", data => removeUser(socket, data));
+
 
   socket.on("makeGameRoom", data => makeGameRoom(socket, data));
   socket.on("enterGameRoom", data => enterGameRoom(socket, data));
   socket.on("joinTeam", data => joinTeam(socket, data));
   socket.on("startGame", roomNumber => startGame(socket, roomNumber));
   socket.on("deleteGameRoom", room => deleteGameRoom(socket, room));
-  socket.on("sendAnswer", answer => recordPlayerAnswer(socket, answer));
+  // socket.on("sendAnswer", answer => recordPlayerAnswer(socket, answer));
   socket.on("updateCardOptions", info => updateCardOptions(socket, info));
   socket.on("sendNextQuestion", roomNumber =>
     sendConsecutiveQuestions(socket, roomNumber)
@@ -43,8 +49,9 @@ function onConnection(socket) {
 
 function login(socket, uid) {
   socket.uid = uid;
-  userIds[uid] = { connected: true };
+  userIds[uid] = { connected: true, currentSocket: socket.id };
   socket.join(uid);
+  console.log("login: ", uid);
 }
 
 function removeUser(socket, { roomId, team, uid, i }) {
@@ -82,14 +89,13 @@ function makeGameRoom(socket, { numberOfTeams, uid }) {
     };
   }
 
-  hostIds = {
-    ...hostIds,
-    [uid]: { socket: socket.id, room: newRoom.id }
-  };
-
   rooms[newRoom.id] = newRoom;
-  socket.emit("makeGameRoom", newRoom);
-  socket.join(socket.uid);
+  if (userIds[uid].connected) {
+    io.to(userIds[uid].currentSocket).emit("makeGameRoom", newRoom);
+  } else {
+    console.log("message to host failed");
+  }
+  socket.join(uid);
   socket.join(newRoom.id);
   console.log(`new room ${newRoom.id} has been created`);
 }
@@ -138,7 +144,10 @@ function joinTeam(socket, data) {
     socket.join(uid);
     socket.emit("gameMessage", `you are in the ${team} team in room ${roomId}`);
     socket.emit("teamColor", team);
-    socket.to(rooms[roomId].host).emit("updateHostRoom", rooms[roomId]);
+    io.in(userIds[rooms[roomId].host].currentSocket).emit(
+      "updateHostRoom",
+      rooms[roomId]
+    );
     console.log(`${name} has joined ${roomId}`);
   }
 }
@@ -185,18 +194,18 @@ function sendQuestion(socket, roomId, questionNumber = 0) {
 
   teams.map(team => {
     rooms[roomId].teams[team].map((player, i) => {
-      socket.to(player.id).emit("cardMessage", {
+      io.in(userIds[player.id].currentSocket).emit("cardMessage", {
         ...testQuestions[questionNumber].cards[randomArray[i]],
         instruction: testQuestions[questionNumber].instruction
       });
     });
   });
 
-  io.in(rooms[roomId].host).emit(
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "gameMessage",
     testQuestions[questionNumber].question
   );
-  io.in(rooms[roomId].host).emit(
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "tidbit",
     testQuestions[questionNumber].tidbit
   );
@@ -260,7 +269,7 @@ function updateCardOptions(socket, info) {
   }
   // send updated options to team
   rooms[roomId].teams[team].map(player => {
-    io.in(player.id).emit(
+    io.in(userIds[player.id].currentSocket).emit(
       "updateCardOptions",
       rooms[roomId].currentChoice[team]
     );
@@ -274,20 +283,23 @@ function updateCardOptions(socket, info) {
   ) {
     // send message to allow submit
     rooms[roomId].teams[team].map(player => {
-      io.in(player.id).emit("submitAllowed", true);
+      io.in(userIds[player.id].currentSocket).emit("submitAllowed", true);
     });
   } else {
     rooms[roomId].teams[team].map(player => {
-      io.in(player.id).emit("submitAllowed", false);
+      io.in(userIds[player.id].currentSocket).emit("submitAllowed", false);
     });
   }
 }
 
 function onTeamSubmit(socket, { roomId, team }) {
-  io.in(roomId).emit("liveTeamSubmitUpdate", team);
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
+    "liveTeamSubmitUpdate",
+    team
+  );
 
   rooms[roomId].teams[team].map(player => {
-    io.in(player.id).emit("teamHasSubmitted");
+    io.in(userIds[player.id].currentSocket).emit("teamHasSubmitted");
   });
 
   let answerKeyArray = [1, 2, 3, 4];
@@ -298,53 +310,52 @@ function onTeamSubmit(socket, { roomId, team }) {
       rooms[roomId].currentChoice[team][answerKey][0].correctAnswer
     ) {
       rooms[roomId].roundScores[team] += 1;
-      socket
-        .to(rooms[roomId].currentChoice[team][answerKey].id)
-        .emit("gameMessage", "CORRECT");
+      io.in(
+        userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
+      ).emit("gameMessage", "CORRECT");
     } else {
-      socket
-        .to(rooms[roomId].currentChoice[team][answerKey].id)
-        .emit("gameMessage", "INCORRECT");
+      io.in(
+        userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
+      ).emit("gameMessage", "INCORRECT");
     }
   });
 
   rooms[roomId].teams[team].map(player => {
-    io.in(player.id).emit(
+    io.in(userIds[player.id].currentSocket).emit(
       "scoreUpdateMessage",
       `well done, your team scored ${rooms[roomId].roundScores[team]}!`
     );
   });
 }
 
-function recordPlayerAnswer(
-  socket,
-  { roomId, team, playersAnswer, correctAnswer }
-) {
-  if (playersAnswer === correctAnswer) {
-    // give points to players team
-    rooms[roomId] = {
-      ...rooms[roomId],
-      roundScores: {
-        ...rooms[roomId].roundScores,
-        [team]: rooms[roomId].roundScores[team] + 1
-      }
-    };
-    console.log("recordPlayerAnswer correct");
+// function recordPlayerAnswer(
+//   socket,
+//   { roomId, team, playersAnswer, correctAnswer }
+// ) {
+//   if (playersAnswer === correctAnswer) {
+//     // give points to players team
+//     rooms[roomId] = {
+//       ...rooms[roomId],
+//       roundScores: {
+//         ...rooms[roomId].roundScores,
+//         [team]: rooms[roomId].roundScores[team] + 1
+//       }
+//     };
+//     console.log("recordPlayerAnswer correct");
 
-    // socket.emit("showScore", "" + rooms[roomIndex].scores[team]);
-    socket.emit("gameMessage", "correct");
-  } else {
-    // tell them they are shit
-    socket.emit("gameMessage", "incorrect");
-  }
-  console.log("team score", rooms[roomId].scores[team]);
-  // need to send back room data to all people in room including host
-  socket.to(rooms[roomId].host).emit("updateHostRoom", rooms[roomId]);
-}
+//     // socket.emit("showScore", "" + rooms[roomIndex].scores[team]);
+//     socket.emit("gameMessage", "correct");
+//   } else {
+//     // tell them they are shit
+//     socket.emit("gameMessage", "incorrect");
+//   }
+//   console.log("team score", rooms[roomId].scores[team]);
+//   // need to send back room data to all people in room including host
+//   socket.to(rooms[roomId].host).emit("updateHostRoom", rooms[roomId]);
+// }
 
 function startGame(socket, roomId) {
   io.in(roomId).emit("gameMessage", `game has started in ${roomId}`);
-
   rooms[roomId] = { ...rooms[roomId], questionNumber: 0 };
 }
 
@@ -357,7 +368,10 @@ function sendUpdatedScore(socket, roomId) {
     rooms[roomId].roundScores[team] = 0;
   });
 
-  io.in(roomId).emit("updateHostRoom", rooms[roomId]);
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
+    "updateHostRoom",
+    rooms[roomId]
+  );
 }
 
 http.listen(process.env.PORT || 6001, () => {
