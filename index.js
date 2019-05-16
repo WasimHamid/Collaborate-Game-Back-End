@@ -24,26 +24,43 @@ function onConnection(socket) {
     console.log("user disconnected");
   });
 
-  socket.on("login", uid => login(socket, uid));
+  socket.on("login", uid => catchError(socket, uid, login));
 
   socket.on("notGotIdYet", () =>
     setTimeout(() => socket.emit("whoAreYou"), 1000)
   );
 
-  socket.on("removeUser", data => removeUser(socket, data));
+  socket.on("removeUser", data => catchError(socket, data, removeUser));
 
-  socket.on("makeGameRoom", data => makeGameRoom(socket, data));
-  socket.on("enterGameRoom", data => enterGameRoom(socket, data));
-  socket.on("joinTeam", data => joinTeam(socket, data));
-  socket.on("startGame", roomNumber => startGame(socket, roomNumber));
-  socket.on("deleteGameRoom", room => deleteGameRoom(socket, room));
+  socket.on("makeGameRoom", data => catchError(socket, data, makeGameRoom));
 
-  socket.on("updateCardOptions", info => updateCardOptions(socket, info));
-  socket.on("sendNextQuestion", roomNumber =>
-    sendConsecutiveQuestions(socket, roomNumber)
+  socket.on("enterGameRoom", data => catchError(socket, data, enterGameRoom));
+  socket.on("joinTeam", data => catchError(socket, data, joinTeam));
+  socket.on("startGame", roomNumber =>
+    catchError(socket, roomNumber, startGame)
   );
-  socket.on("submitTeamAnswer", data => onTeamSubmit(socket, data));
-  socket.on("getCurrentScore", roomId => sendUpdatedScore(socket, roomId));
+  socket.on("deleteGameRoom", room => catchError(socket, room, deleteGameRoom));
+
+  socket.on("updateCardOptions", info =>
+    catchError(socket, info, updateCardOptions)
+  );
+  socket.on("sendNextQuestion", roomNumber =>
+    catchError(socket, roomNumber, sendConsecutiveQuestions)
+  );
+  socket.on("submitTeamAnswer", data => catchError(socket, data, onTeamSubmit));
+  socket.on("getCurrentScore", roomId =>
+    catchError(socket, roomId, sendUpdatedScore)
+  );
+}
+
+function catchError(socket, data, action) {
+  try {
+    action(socket, data);
+    console.log("action has been performed");
+  } catch (err) {
+    console.log(err);
+    socket.emit("gameMessage", "sorry something has gone wrong");
+  }
 }
 
 function login(socket, uid) {
@@ -73,6 +90,7 @@ function makeGameRoom(socket, { numberOfTeams, uid }) {
   newRoom.host = uid;
   newRoom.currentChoice = {};
   newRoom.currentChoiceCopy = {};
+  newRoom.teamsThatHaveSubmitted = [];
 
   for (var i = 0; i < numberOfTeams; i++) {
     newRoom.teams = { ...newRoom.teams, [teamColors[i]]: [] };
@@ -99,8 +117,7 @@ function makeGameRoom(socket, { numberOfTeams, uid }) {
   console.log(`new room ${newRoom.id} has been created`);
 }
 
-function enterGameRoom(socket, data) {
-  const { roomId, uid } = data;
+function enterGameRoom(socket, { roomId, uid }) {
   console.log("user id object", userIds[uid]);
 
   if (rooms[roomId]) {
@@ -146,9 +163,7 @@ function enterGameRoom(socket, data) {
   }
 }
 
-function joinTeam(socket, data) {
-  const { roomId, team, name, uid } = data;
-
+function joinTeam(socket, { roomId, team, name, uid }) {
   let arrayOfTeamsInRoom = Object.keys(rooms[roomId].teams);
 
   let isOnTeamInRoom = arrayOfTeamsInRoom
@@ -218,6 +233,7 @@ function sendConsecutiveQuestions(socket, roomId) {
 }
 
 function sendQuestion(socket, roomId, questionNumber = 0) {
+  rooms[roomId].teamsThatHaveSubmitted = [];
   rooms[roomId].currentChoice = rooms[roomId].currentChoiceCopy;
 
   let teams = Object.keys(rooms[roomId].teams);
@@ -244,15 +260,15 @@ function sendQuestion(socket, roomId, questionNumber = 0) {
   console.log(`question has been sent to ${roomId}`);
 }
 
-function deleteGameRoom(socket, roomNumber) {
-  // let roomIndex = rooms.findIndex(obj => obj.id === roomNumber);
-  // rooms = [...rooms.slice(0, roomIndex), ...rooms.slice(roomIndex + 1)];
-  // console.log(`room ${roomNumber} has been deleted`);
+function deleteGameRoom(socket, roomId) {
+  delete rooms[roomId];
+  console.log(`room ${roomId} has been deleted`);
 }
 
-function updateCardOptions(socket, info) {
-  const { roomId, team, answer, cardText, correctAnswer } = info;
-
+function updateCardOptions(
+  socket,
+  { roomId, team, answer, cardText, correctAnswer }
+) {
   console.log(info);
 
   let arrayOfAnswerIndex = [1, 2, 3, 4].map(answerKey =>
@@ -325,9 +341,11 @@ function updateCardOptions(socket, info) {
 }
 
 function onTeamSubmit(socket, { roomId, team }) {
+  rooms[roomId].teamsThatHaveSubmitted.push(team);
+
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "liveTeamSubmitUpdate",
-    team
+    teamsThatHaveSubmitted
   );
 
   rooms[roomId].teams[team].map(player => {
@@ -367,6 +385,8 @@ function startGame(socket, roomId) {
 
 function sendUpdatedScore(socket, roomId) {
   let teams = Object.keys(rooms[roomId].teams);
+
+  // this needs to change for score to behave correctly
 
   teams.map(team => {
     console.log("round scores send update", rooms[roomId].roundScores[team]);
