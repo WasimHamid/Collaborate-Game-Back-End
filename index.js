@@ -269,8 +269,6 @@ function updateCardOptions(
   socket,
   { roomId, team, answer, cardText, correctAnswer }
 ) {
-  console.log(info);
-
   let arrayOfAnswerIndex = [1, 2, 3, 4].map(answerKey =>
     rooms[roomId].currentChoice[team][answerKey].findIndex(
       obj => obj.id === socket.uid
@@ -345,7 +343,7 @@ function onTeamSubmit(socket, { roomId, team }) {
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "liveTeamSubmitUpdate",
-    teamsThatHaveSubmitted
+    rooms[roomId].teamsThatHaveSubmitted
   );
 
   rooms[roomId].teams[team].map(player => {
@@ -360,14 +358,15 @@ function onTeamSubmit(socket, { roomId, team }) {
       rooms[roomId].currentChoice[team][answerKey][0].correctAnswer
     ) {
       rooms[roomId].roundScores[team] += 1;
-      io.in(
-        userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
-      ).emit("gameMessage", "CORRECT");
-    } else {
-      io.in(
-        userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
-      ).emit("gameMessage", "INCORRECT");
+      // io.in(
+      //   userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
+      // ).emit("gameMessage", "CORRECT");
     }
+    // else {
+    //   io.in(
+    //     userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
+    //   ).emit("gameMessage", "INCORRECT");
+    // }
   });
 
   rooms[roomId].teams[team].map(player => {
