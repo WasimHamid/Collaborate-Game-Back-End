@@ -24,16 +24,17 @@ function onConnection(socket) {
     console.log("user disconnected");
   });
 
+  socket.on("testNav", () => socket.emit("pageNavigation", "/hostrouter/123"));
+
   socket.on("login", uid => catchError(socket, uid, login));
 
   socket.on("notGotIdYet", () =>
-    setTimeout(() => socket.emit("whoAreYou"), 1000)
+    catchError(socket, null, () =>
+      setTimeout(() => socket.emit("whoAreYou"), 1000)
+    )
   );
-
   socket.on("removeUser", data => catchError(socket, data, removeUser));
-
   socket.on("makeGameRoom", data => catchError(socket, data, makeGameRoom));
-
   socket.on("enterGameRoom", data => catchError(socket, data, enterGameRoom));
   socket.on("joinTeam", data => catchError(socket, data, joinTeam));
   socket.on("startGame", roomNumber =>
@@ -67,7 +68,15 @@ function login(socket, uid) {
   socket.uid = uid;
   userIds[uid] = { connected: true, currentSocket: socket.id };
   socket.join(uid);
-  console.log("login: ", uid);
+  console.log("user logged in: ", uid);
+
+  // if host then push game room
+  Object.keys(rooms).map(room => {
+    if (rooms[room].host === uid) {
+      console.log("a host has appeard");
+      io.in(uid).emit("makeGameRoom", rooms[room]);
+    }
+  });
 }
 
 function removeUser(socket, { roomId, team, uid, i }) {
@@ -107,6 +116,7 @@ function makeGameRoom(socket, { numberOfTeams, uid }) {
   }
 
   rooms[newRoom.id] = newRoom;
+
   if (userIds[uid].connected) {
     io.to(userIds[uid].currentSocket).emit("makeGameRoom", newRoom);
   } else {
@@ -197,6 +207,45 @@ function joinTeam(socket, { roomId, team, name, uid }) {
     console.log(`${name} has joined ${roomId}`);
   } else {
   }
+}
+
+function startGame(socket, roomId) {
+  console.log("game started");
+
+  io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
+    message: "im a test message",
+    path: "/host/question"
+  });
+
+  sendQuestionAndCountDownToGameStart(socket, roomId);
+}
+
+function sendQuestionAndCountDownToGameStart(socket, roomId) {
+  io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
+    message: testQuestions[rooms[roomId].questionNumber].question,
+    path: "/host/question"
+  });
+
+  countDown(socket, 2, roomId);
+}
+
+function countDown(socket, startcount, roomId) {
+  let count = startcount;
+  let intervalID = setInterval(() => {
+    if (count > 0) {
+      io.in(userIds[rooms[roomId].host].currentSocket).emit(
+        "updateCounter",
+        count
+      );
+      count--;
+    } else {
+      clearInterval(intervalID);
+      io.in(userIds[rooms[roomId].host].currentSocket).emit(
+        "gameMessage",
+        "test"
+      );
+    }
+  }, 1000);
 }
 
 function shuffle(array) {
@@ -340,6 +389,12 @@ function updateCardOptions(
 
 function onTeamSubmit(socket, { roomId, team }) {
   rooms[roomId].teamsThatHaveSubmitted.push(team);
+  if (
+    rooms[roomId].teamsThatHaveSubmitted ===
+    Object.keys(rooms[roomId].teams).length
+  ) {
+    // trigger next thing
+  }
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "liveTeamSubmitUpdate",
@@ -377,10 +432,10 @@ function onTeamSubmit(socket, { roomId, team }) {
   });
 }
 
-function startGame(socket, roomId) {
-  io.in(roomId).emit("gameMessage", `game has started in ${roomId}`);
-  rooms[roomId] = { ...rooms[roomId], questionNumber: 0 };
-}
+// function startGame(socket, roomId) {
+//   io.in(roomId).emit("gameMessage", `game has started in ${roomId}`);
+//   rooms[roomId] = { ...rooms[roomId], questionNumber: 0 };
+// }
 
 function sendUpdatedScore(socket, roomId) {
   let teams = Object.keys(rooms[roomId].teams);
