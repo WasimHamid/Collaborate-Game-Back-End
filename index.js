@@ -33,6 +33,7 @@ function onConnection(socket) {
       setTimeout(() => socket.emit("whoAreYou"), 1000)
     )
   );
+  socket.on("abort", roomId => endGamePrematurely(socket, roomId));
   socket.on("removeUser", data => catchError(socket, data, removeUser));
   socket.on("makeGameRoom", data => catchError(socket, data, makeGameRoom));
   socket.on("enterGameRoom", data => catchError(socket, data, enterGameRoom));
@@ -221,7 +222,17 @@ function startGame(socket, roomId) {
     setTimeout(() => sendQuestionToHostWithCountdown(socket, roomId), 6000);
   } else {
     // finsih game here
+    clearInterval(rooms[roomId].intervalIdCountdown);
+    clearInterval(rooms[roomId].intervalIdRound);
+    io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
+      path: "/host/scores"
+    });
   }
+}
+
+function endGamePrematurely(socket, roomId) {
+  clearInterval(rooms[roomId].intervalIdCountdown);
+  clearInterval(rooms[roomId].intervalIdRound);
 }
 
 function sendQuestionToHostWithCountdown(socket, roomId) {
@@ -241,14 +252,14 @@ function countDown(socket, startcount, roomId) {
   });
   count--;
 
-  let intervalID = setInterval(() => {
+  rooms[roomId].intervalIdCountdown = setInterval(() => {
     if (count > 0) {
       io.in(userIds[rooms[roomId].host].currentSocket).emit("updateCounter", {
         question: count
       });
       count--;
     } else {
-      clearInterval(intervalID);
+      clearInterval(rooms[roomId].intervalIdCountdown);
       io.in(userIds[rooms[roomId].host].currentSocket).emit("updateCounter", {
         question: 0
       });
@@ -274,7 +285,7 @@ function roundTimer(socket, roomId) {
 
   count--;
 
-  let intervalId = setInterval(() => {
+  rooms[roomId].intervalIdRound = setInterval(() => {
     if (count > 0) {
       // send counter to players
       teams.map(team => {
@@ -291,7 +302,7 @@ function roundTimer(socket, roomId) {
       count--;
     } else {
       // go to score page
-      clearInterval(intervalId);
+      clearInterval(rooms[roomId].intervalIdRound);
       teams.map(team => {
         rooms[roomId].teams[team].map((player, i) => {
           io.in(userIds[player.id].currentSocket).emit("roundHasFinished");
