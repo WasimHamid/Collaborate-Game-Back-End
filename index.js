@@ -33,7 +33,7 @@ function onConnection(socket) {
       setTimeout(() => socket.emit("whoAreYou"), 1000)
     )
   );
-  socket.on("abort", roomId => endGamePrematurely(socket, roomId));
+  socket.on("abort", roomId => catchError(socket, roomId, endGamePrematurely));
   socket.on("removeUser", data => catchError(socket, data, removeUser));
   socket.on("makeGameRoom", data => catchError(socket, data, makeGameRoom));
   socket.on("enterGameRoom", data => catchError(socket, data, enterGameRoom));
@@ -460,6 +460,12 @@ function updateCardOptions(
 
 function onTeamSubmit(socket, { roomId, team }) {
   rooms[roomId].teamsThatHaveSubmitted.push(team);
+
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
+    "liveTeamSubmitUpdate",
+    rooms[roomId].teamsThatHaveSubmitted
+  );
+
   if (
     rooms[roomId].teamsThatHaveSubmitted ===
     Object.keys(rooms[roomId].teams).length
@@ -467,39 +473,38 @@ function onTeamSubmit(socket, { roomId, team }) {
     // trigger next thing
   }
 
-  io.in(userIds[rooms[roomId].host].currentSocket).emit(
-    "liveTeamSubmitUpdate",
-    rooms[roomId].teamsThatHaveSubmitted
-  );
-
-  rooms[roomId].teams[team].map(player => {
-    io.in(userIds[player.id].currentSocket).emit("teamHasSubmitted");
-  });
+  // rooms[roomId].teams[team].map(player => {
+  //   io.in(userIds[player.id].currentSocket).emit("teamHasSubmitted");
+  // });
 
   let answerKeyArray = [1, 2, 3, 4];
+  let answerFeedback = [];
 
   answerKeyArray.map(answerKey => {
     if (
       rooms[roomId].currentChoice[team][answerKey][0].answer ===
       rooms[roomId].currentChoice[team][answerKey][0].correctAnswer
     ) {
-      rooms[roomId].roundScores[team] += 1;
+      rooms[roomId].roundScores[team] += 100;
+      answerFeedback.push("lightgreen");
       // io.in(
       //   userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
       // ).emit("gameMessage", "CORRECT");
+    } else {
+      answerFeedback.push("red");
+      // io.in(
+      //   userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
+      // ).emit("gameMessage", "INCORRECT");
     }
-    // else {
-    //   io.in(
-    //     userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
-    //   ).emit("gameMessage", "INCORRECT");
-    // }
   });
 
   rooms[roomId].teams[team].map(player => {
-    io.in(userIds[player.id].currentSocket).emit(
-      "scoreUpdateMessage",
-      `well done, your team scored ${rooms[roomId].roundScores[team]}!`
-    );
+    io.in(userIds[player.id].currentSocket).emit("answerFeedback", {
+      message: `well done, your team scored ${
+        rooms[roomId].roundScores[team]
+      }!`,
+      feedback: answerFeedback
+    });
   });
 }
 
