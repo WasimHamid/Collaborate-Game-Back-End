@@ -302,20 +302,27 @@ function roundTimer(socket, roomId) {
       count--;
     } else {
       // go to score page
-      clearInterval(rooms[roomId].intervalIdRound);
-      teams.map(team => {
-        rooms[roomId].teams[team].map((player, i) => {
-          io.in(userIds[player.id].currentSocket).emit("roundHasFinished");
-        });
-      });
-      io.in(rooms[roomId].host).emit("messageAndNav", {
-        message: "",
-        path: "/host/score"
-      });
-
-      setTimeout(() => startGame(socket, roomId), 6000);
+      endRoundAndSendScore(socket, roomId);
     }
   }, 1000);
+}
+
+function endRoundAndSendScore(socket, roomId) {
+  teams = Object.keys(rooms[roomId].teams);
+
+  clearInterval(rooms[roomId].intervalIdRound);
+
+  teams.map(team => {
+    rooms[roomId].teams[team].map((player, i) => {
+      io.in(userIds[player.id].currentSocket).emit("roundHasFinished");
+    });
+  });
+  io.in(rooms[roomId].host).emit("messageAndNav", {
+    message: "",
+    path: "/host/score"
+  });
+  sendUpdatedScore(socket, roomId);
+  setTimeout(() => startGame(socket, roomId), 6000);
 }
 
 function shuffle(array) {
@@ -467,15 +474,12 @@ function onTeamSubmit(socket, { roomId, team }) {
   );
 
   if (
-    rooms[roomId].teamsThatHaveSubmitted ===
+    rooms[roomId].teamsThatHaveSubmitted.length ===
     Object.keys(rooms[roomId].teams).length
   ) {
     // trigger next thing
+    setTimeout(() => endRoundAndSendScore(socket, roomId), 2000);
   }
-
-  // rooms[roomId].teams[team].map(player => {
-  //   io.in(userIds[player.id].currentSocket).emit("teamHasSubmitted");
-  // });
 
   let answerKeyArray = [1, 2, 3, 4];
   let answerFeedback = [];
@@ -487,14 +491,8 @@ function onTeamSubmit(socket, { roomId, team }) {
     ) {
       rooms[roomId].roundScores[team] += 100;
       answerFeedback.push("lightgreen");
-      // io.in(
-      //   userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
-      // ).emit("gameMessage", "CORRECT");
     } else {
       answerFeedback.push("red");
-      // io.in(
-      //   userIds[rooms[roomId].currentChoice[team][answerKey].id].currentSocket
-      // ).emit("gameMessage", "INCORRECT");
     }
   });
 
@@ -505,6 +503,7 @@ function onTeamSubmit(socket, { roomId, team }) {
       }!`,
       feedback: answerFeedback
     });
+    io.in(userIds[player.id].currentSocket).emit("teamHasSubmitted");
   });
 }
 
