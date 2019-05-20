@@ -115,12 +115,11 @@ function enterGameRoom(socket, { roomId, uid }) {
   if (rooms[roomId]) {
     if (rooms[roomId].isPlayerInRoom(uid)) {
       socket.emit("enterGameRoom", rooms[roomId]);
-      socket.emit(
-        "gameMessage",
-        `you are in the ${team} team in room ${roomId}`
-      );
+      socket.emit("messageAndNav", {
+        message: `you are in the ${team} team in room ${roomId}`,
+        path: "/play/holding"
+      });
       socket.emit("teamColor", team);
-      socket.emit("rejoinMidGame");
       socket.join(roomId);
     } else {
       socket.emit("enterGameRoom", rooms[roomId]);
@@ -416,7 +415,6 @@ function onTeamSubmit(socket, { roomId, team }) {
       }!`,
       feedback: answerFeedback
     });
-    io.in(userIds[player.id].currentSocket).emit("teamHasSubmitted");
   });
 }
 
