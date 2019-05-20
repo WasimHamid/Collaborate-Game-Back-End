@@ -13,6 +13,7 @@ function Room(numberOfTeams, roomId, uid) {
   this.currentChoice = {};
   this.currentChoiceCopy = {};
   this.teamsThatHaveSubmitted = [];
+  this.currentQuestion = [];
 
   for (var i = 0; i < numberOfTeams; i++) {
     this.teams = { ...this.teams, [teamColors[i]]: [] };
@@ -83,6 +84,7 @@ Room.prototype.resetTeamsThatHaveSubmitted = function() {
 Room.prototype.haveAllTeamsSubmitted = function() {
   return this.teamsThatHaveSubmitted.length === this.teamsArray.length;
 };
+
 Room.prototype.hasTeamSubmitted = function(team) {
   return (
     this.currentChoice[team][1].length === 1 &&
@@ -123,13 +125,20 @@ Room.prototype.updateCardOptions = function(
       1
     );
   }
-  // send updated options to team
-  // rooms[roomId].teams[team].map(player => {
-  //     io.in(userIds[player.id].currentSocket).emit(
-  //         "updateCardOptions",
-  //         rooms[roomId].currentChoice[team]
-  //     );
-  // });
+};
+
+Room.prototype.addRoundsToTotalAndResetForTeam = function(team) {
+  this.scores[team] += this.roundScores[team];
+  this.roundScores[team] = 0;
+};
+
+Room.prototype.addAllTeamRoundsToTotalAndReset = function() {
+  this.teamsArray.map(team => {
+    this.addRoundsToTotalAndResetForTeam(team);
+  });
+};
+Room.prototype.addToCurrentQuestion = function(cards) {
+  this.currentQuestion = cards;
 };
 
 module.exports = Room;

@@ -7,6 +7,14 @@ const Room = require("./roomobject");
 let rooms = {};
 let userIds = {};
 
+const scoreBoardTimeout = 9000;
+const roundCardTimeout = 6000;
+const questionSeconds = 3;
+const answerSeconds = 30;
+const hostAnswerTimeout = 5000;
+
+const points = 100;
+
 function getNewRoomId() {
   return Math.floor(Math.random() * 9000 + 1000);
 }
@@ -107,12 +115,11 @@ function enterGameRoom(socket, { roomId, uid }) {
   if (rooms[roomId]) {
     if (rooms[roomId].isPlayerInRoom(uid)) {
       socket.emit("enterGameRoom", rooms[roomId]);
-      socket.emit(
-        "gameMessage",
-        `you are in the ${team} team in room ${roomId}`
-      );
+      socket.emit("messageAndNav", {
+        message: `you are in the ${team} team in room ${roomId}`,
+        path: "/play/holding"
+      });
       socket.emit("teamColor", team);
-      socket.emit("rejoinMidGame");
       socket.join(roomId);
     } else {
       socket.emit("enterGameRoom", rooms[roomId]);
@@ -155,7 +162,10 @@ function startGame(socket, roomId) {
       path: "/host/roundcard"
     });
 
-    setTimeout(() => sendQuestionToHostWithCountdown(socket, roomId), 6000);
+    setTimeout(
+      () => sendQuestionToHostWithCountdown(socket, roomId),
+      roundCardTimeout
+    );
   } else {
     // finsih game here
     clearInterval(rooms[roomId].intervalIdCountdown);
@@ -177,11 +187,11 @@ function sendQuestionToHostWithCountdown(socket, roomId) {
     path: "/host/question"
   });
 
-  countDown(socket, 3, roomId);
+  countDown(socket, roomId);
 }
 
-function countDown(socket, startcount, roomId) {
-  let count = startcount;
+function countDown(socket, roomId) {
+  let count = questionSeconds;
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit("updateCounter", {
     question: count
@@ -205,7 +215,7 @@ function countDown(socket, startcount, roomId) {
 }
 
 function roundTimer(socket, roomId) {
-  let count = 30;
+  let count = answerSeconds;
 
   rooms[roomId].teamsArray.map(team => {
     rooms[roomId].teams[team].map((player, i) => {
@@ -237,25 +247,33 @@ function roundTimer(socket, roomId) {
       count--;
     } else {
       // go to score page
-      endRoundAndSendScore(socket, roomId);
+      endRoundAndShowAnswer(socket, roomId);
     }
   }, 1000);
 }
 
-function endRoundAndSendScore(socket, roomId) {
+function endRoundAndShowAnswer(socket, roomId) {
   clearInterval(rooms[roomId].intervalIdRound);
 
+  io.in(rooms[roomId].host).emit("messageAndNav", {
+    message: "",
+    path: "/host/answer"
+  });
+  setTimeout(() => showScore(socket, roomId), hostAnswerTimeout);
+}
+
+function showScore(socket, roomId) {
   rooms[roomId].teamsArray.map(team => {
     rooms[roomId].teams[team].map((player, i) => {
       io.in(userIds[player.id].currentSocket).emit("roundHasFinished");
     });
   });
+  sendUpdatedScore(socket, roomId);
   io.in(rooms[roomId].host).emit("messageAndNav", {
     message: "",
     path: "/host/score"
   });
-  sendUpdatedScore(socket, roomId);
-  setTimeout(() => startGame(socket, roomId), 6000);
+  setTimeout(() => startGame(socket, roomId), scoreBoardTimeout);
 }
 
 function shuffle(array) {
@@ -277,22 +295,23 @@ function shuffle(array) {
 
 function sendConsecutiveQuestions(socket, roomId) {
   if (rooms[roomId].questionNumber < testQuestions.length) {
-    //map over teams
-    // send round score
-    // add roundscore to gamescore
-    // clear round score
     sendQuestion(socket, roomId, rooms[roomId].questionNumber);
     roundTimer(socket, roomId);
     rooms[roomId].addToQuestionNumber();
   } else {
     io.in(roomId).emit("gameMessage", `no more questions`);
+    sendUpdatedScore(socket, roomId);
+    io.in(rooms[roomId].host).emit("messageAndNav", {
+      message: "",
+      path: "/host/score"
+    });
   }
 }
 
 function sendQuestion(socket, roomId, questionNumber = 0) {
   rooms[roomId].resetTeamsThatHaveSubmitted();
   rooms[roomId].resetCurrentChoice();
-
+  rooms[roomId].addToCurrentQuestion(testQuestions[questionNumber].cards);
   let randomArray = shuffle([0, 1, 2, 3]);
 
   rooms[roomId].teamsArray.map(team => {
@@ -312,6 +331,12 @@ function sendQuestion(socket, roomId, questionNumber = 0) {
     "tidbit",
     testQuestions[questionNumber].tidbit
   );
+
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
+    "updateHostRoom",
+    rooms[roomId]
+  );
+
   console.log(`question has been sent to ${roomId}`);
 }
 
@@ -331,28 +356,6 @@ function updateCardOptions(
     correctAnswer,
     cardText
   );
-  // let arrayOfAnswerIndex = [1, 2, 3, 4].map(answerKey =>
-  //   rooms[roomId].currentChoice[team][answerKey].findIndex(
-  //     obj => obj.id === socket.uid
-  //   )
-  // );
-
-  // let indexOfOldAnswer = arrayOfAnswerIndex.findIndex(i => i !== -1);
-  // let oldAnswerKey = indexOfOldAnswer + 1;
-
-  // if (rooms[roomId].currentChoice[team][answer].length < 1) {
-  //   if (indexOfOldAnswer !== -1) {
-  //     //delete previous answer
-  //     rooms[roomId].removeAnswer(team, oldAnswerKey, indexOfOldAnswer);
-  //   }
-  //   // add new answer
-  //   rooms[roomId].addAnswer(team, socket.uid, cardText, answer, correctAnswer);
-  // }
-  // // if answer same then remove it
-  // if (oldAnswerKey === answer) {
-  //   rooms[roomId].removeAnswer(team, oldAnswerKey, indexOfOldAnswer);
-  // }
-
   // send updated options to team
   rooms[roomId].teams[team].map(player => {
     io.in(userIds[player.id].currentSocket).emit(
@@ -381,6 +384,10 @@ function onTeamSubmit(socket, { roomId, team }) {
     rooms[roomId].teamsThatHaveSubmitted
   );
 
+  rooms[roomId].teams[team].map(player => {
+    io.in(userIds[player.id].currentSocket).emit("submitAllowed", false);
+  });
+
   if (rooms[roomId].haveAllTeamsSubmitted()) {
     // trigger next thing
     setTimeout(() => endRoundAndSendScore(socket, roomId), 2000);
@@ -394,10 +401,10 @@ function onTeamSubmit(socket, { roomId, team }) {
       rooms[roomId].currentChoice[team][answerKey][0].answer ===
       rooms[roomId].currentChoice[team][answerKey][0].correctAnswer
     ) {
-      rooms[roomId].roundScores[team] += 100;
-      answerFeedback.push("lightgreen");
+      rooms[roomId].roundScores[team] += points;
+      answerFeedback.push({ color: "lightgreen", points });
     } else {
-      answerFeedback.push("red");
+      answerFeedback.push({ color: "red", points: 0 });
     }
   });
 
@@ -408,18 +415,11 @@ function onTeamSubmit(socket, { roomId, team }) {
       }!`,
       feedback: answerFeedback
     });
-    io.in(userIds[player.id].currentSocket).emit("teamHasSubmitted");
   });
 }
 
 function sendUpdatedScore(socket, roomId) {
-  // this needs to change for score to behave correctly
-
-  rooms[roomId].teamsArray.map(team => {
-    console.log("round scores send update", rooms[roomId].roundScores[team]);
-    rooms[roomId].scores[team] += rooms[roomId].roundScores[team];
-    rooms[roomId].roundScores[team] = 0;
-  });
+  rooms[roomId].addAllTeamRoundsToTotalAndReset();
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "updateHostRoom",
