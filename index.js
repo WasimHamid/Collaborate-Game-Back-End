@@ -375,11 +375,6 @@ function updateCardOptions(
   let indexOfOldAnswer = arrayOfAnswerIndex.findIndex(i => i !== -1);
   let oldAnswerKey = indexOfOldAnswer + 1;
 
-  // console.log("indexOfOldAnswer", indexOfOldAnswer);
-  // console.log("arrayOfAnswerIndex", arrayOfAnswerIndex);
-  // console.log("oldAnswerboth", arrayOfAnswerIndex[indexOfOldAnswer]);
-  // console.log("oldAnswerKey", oldAnswerKey);
-
   if (rooms[roomId].currentChoice[team][answer].length < 1) {
     if (indexOfOldAnswer !== -1) {
       //delete previous answer
@@ -418,7 +413,7 @@ function updateCardOptions(
     );
   });
 
-  if (rooms[roomId].haveAllTeamsSubmitted()) {
+  if (rooms[roomId].hasTeamSubmitted(team)) {
     // send message to allow submit
     rooms[roomId].teams[team].map(player => {
       io.in(userIds[player.id].currentSocket).emit("submitAllowed", true);

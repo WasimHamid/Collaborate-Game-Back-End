@@ -1,8 +1,4 @@
 module.exports = function Room() {
-  this.haveAllTeamsSubmitted = () => {
-    return this.teamsThatHaveSubmitted.length === this.teamsArray.length;
-  };
-
   this.isPlayerInRoom = uid => {
     console.log(this.teamsArray);
     return this.teamsArray
@@ -23,6 +19,9 @@ module.exports = function Room() {
     this.teamsThatHaveSubmitted = [];
   };
   this.haveAllTeamsSubmitted = () => {
+    return this.teamsThatHaveSubmitted.length === this.teamsArray.length;
+  };
+  this.hasTeamSubmitted = team => {
     return (
       this.currentChoice[team][1].length === 1 &&
       this.currentChoice[team][2].length === 1 &&
