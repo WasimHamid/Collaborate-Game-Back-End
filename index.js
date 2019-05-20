@@ -87,36 +87,7 @@ function removeUser(socket, { roomId, team, uid, i }) {
 }
 
 function makeGameRoom(socket, { numberOfTeams, uid }) {
-  // let teamColors = ["#EB4511", "#23C9FF", "#D2FF28", "#FFAD05"];
-  let teamColors = ["dodgerblue", "Fuchsia", "palegoldenrod", "lime"];
-  let newRoom = new Room();
-  newRoom.id = getNewRoomId();
-  newRoom.name = `room ${rooms.length + 1}`;
-  newRoom.teams = {};
-  newRoom.teamsArray = [];
-  newRoom.scores = {};
-  newRoom.roundScores = {};
-  newRoom.players = [];
-  newRoom.questionNumber = 0;
-  newRoom.host = uid;
-  newRoom.currentChoice = {};
-  newRoom.currentChoiceCopy = {};
-  newRoom.teamsThatHaveSubmitted = [];
-
-  for (var i = 0; i < numberOfTeams; i++) {
-    newRoom.teams = { ...newRoom.teams, [teamColors[i]]: [] };
-    newRoom.teamsArray.push(teamColors[i]);
-    newRoom.scores = { ...newRoom.scores, [teamColors[i]]: 0 };
-    newRoom.roundScores = { ...newRoom.scores, [teamColors[i]]: 0 };
-    newRoom.currentChoice = {
-      ...newRoom.currentChoice,
-      [teamColors[i]]: { 1: [], 2: [], 3: [], 4: [] }
-    };
-    newRoom.currentChoiceCopy = {
-      ...newRoom.currentChoice,
-      [teamColors[i]]: { 1: [], 2: [], 3: [], 4: [] }
-    };
-  }
+  let newRoom = new Room(numberOfTeams, getNewRoomId(), uid);
 
   rooms[newRoom.id] = newRoom;
 
@@ -134,7 +105,6 @@ function enterGameRoom(socket, { roomId, uid }) {
   console.log("user id object", userIds[uid]);
 
   if (rooms[roomId]) {
-    console.log("new array", rooms[roomId].teamsArray);
     if (rooms[roomId].isPlayerInRoom(uid)) {
       socket.emit("enterGameRoom", rooms[roomId]);
       socket.emit(
@@ -163,13 +133,7 @@ function enterGameRoom(socket, { roomId, uid }) {
 
 function joinTeam(socket, { roomId, team, name, uid }) {
   if (!rooms[roomId].isPlayerInRoom()) {
-    rooms[roomId] = {
-      ...rooms[roomId],
-      teams: {
-        ...rooms[roomId].teams,
-        [team]: [...rooms[roomId].teams[team], { id: uid, name }]
-      }
-    };
+    rooms[roomId].addPlayerToTeam(team, name, uid);
     socket.join(uid);
     socket.emit("gameMessage", `you are in the ${team} team in room ${roomId}`);
     socket.emit("teamColor", team);
@@ -178,7 +142,7 @@ function joinTeam(socket, { roomId, team, name, uid }) {
       rooms[roomId]
     );
     console.log(`${name} has joined ${roomId}`);
-  } else {
+    console.log(rooms[roomId].teams);
   }
 }
 
@@ -213,7 +177,7 @@ function sendQuestionToHostWithCountdown(socket, roomId) {
     path: "/host/question"
   });
 
-  countDown(socket, 5, roomId);
+  countDown(socket, 3, roomId);
 }
 
 function countDown(socket, startcount, roomId) {
@@ -241,10 +205,9 @@ function countDown(socket, startcount, roomId) {
 }
 
 function roundTimer(socket, roomId) {
-  let teams = Object.keys(rooms[roomId].teams);
   let count = 30;
 
-  teams.map(team => {
+  rooms[roomId].teamsArray.map(team => {
     rooms[roomId].teams[team].map((player, i) => {
       io.in(userIds[player.id].currentSocket).emit("updateCounter", {
         round: count
@@ -260,7 +223,7 @@ function roundTimer(socket, roomId) {
   rooms[roomId].intervalIdRound = setInterval(() => {
     if (count > 0) {
       // send counter to players
-      teams.map(team => {
+      rooms[roomId].teamsArray.map(team => {
         rooms[roomId].teams[team].map((player, i) => {
           io.in(userIds[player.id].currentSocket).emit("updateCounter", {
             round: count
@@ -280,11 +243,9 @@ function roundTimer(socket, roomId) {
 }
 
 function endRoundAndSendScore(socket, roomId) {
-  teams = Object.keys(rooms[roomId].teams);
-
   clearInterval(rooms[roomId].intervalIdRound);
 
-  teams.map(team => {
+  rooms[roomId].teamsArray.map(team => {
     rooms[roomId].teams[team].map((player, i) => {
       io.in(userIds[player.id].currentSocket).emit("roundHasFinished");
     });
@@ -322,10 +283,7 @@ function sendConsecutiveQuestions(socket, roomId) {
     // clear round score
     sendQuestion(socket, roomId, rooms[roomId].questionNumber);
     roundTimer(socket, roomId);
-    rooms[roomId] = {
-      ...rooms[roomId],
-      questionNumber: rooms[roomId].questionNumber + 1
-    };
+    rooms[roomId].addToQuestionNumber();
   } else {
     io.in(roomId).emit("gameMessage", `no more questions`);
   }
@@ -366,45 +324,35 @@ function updateCardOptions(
   socket,
   { roomId, team, answer, cardText, correctAnswer }
 ) {
-  let arrayOfAnswerIndex = [1, 2, 3, 4].map(answerKey =>
-    rooms[roomId].currentChoice[team][answerKey].findIndex(
-      obj => obj.id === socket.uid
-    )
+  rooms[roomId].updateCardOptions(
+    socket.uid,
+    team,
+    answer,
+    correctAnswer,
+    cardText
   );
+  // let arrayOfAnswerIndex = [1, 2, 3, 4].map(answerKey =>
+  //   rooms[roomId].currentChoice[team][answerKey].findIndex(
+  //     obj => obj.id === socket.uid
+  //   )
+  // );
 
-  let indexOfOldAnswer = arrayOfAnswerIndex.findIndex(i => i !== -1);
-  let oldAnswerKey = indexOfOldAnswer + 1;
+  // let indexOfOldAnswer = arrayOfAnswerIndex.findIndex(i => i !== -1);
+  // let oldAnswerKey = indexOfOldAnswer + 1;
 
-  if (rooms[roomId].currentChoice[team][answer].length < 1) {
-    if (indexOfOldAnswer !== -1) {
-      //delete previous answer
-      rooms[roomId].currentChoice[team][oldAnswerKey].splice(
-        arrayOfAnswerIndex[indexOfOldAnswer],
-        1
-      );
-    }
-    // add new answer
-    rooms[roomId] = {
-      ...rooms[roomId],
-      currentChoice: {
-        ...rooms[roomId].currentChoice,
-        [team]: {
-          ...rooms[roomId].currentChoice[team],
-          [answer]: [
-            ...rooms[roomId].currentChoice[team][answer],
-            { cardText, answer, correctAnswer, id: socket.uid }
-          ]
-        }
-      }
-    };
-  }
-  // if answer same then remove it
-  if (oldAnswerKey === answer) {
-    rooms[roomId].currentChoice[team][oldAnswerKey].splice(
-      arrayOfAnswerIndex[indexOfOldAnswer],
-      1
-    );
-  }
+  // if (rooms[roomId].currentChoice[team][answer].length < 1) {
+  //   if (indexOfOldAnswer !== -1) {
+  //     //delete previous answer
+  //     rooms[roomId].removeAnswer(team, oldAnswerKey, indexOfOldAnswer);
+  //   }
+  //   // add new answer
+  //   rooms[roomId].addAnswer(team, socket.uid, cardText, answer, correctAnswer);
+  // }
+  // // if answer same then remove it
+  // if (oldAnswerKey === answer) {
+  //   rooms[roomId].removeAnswer(team, oldAnswerKey, indexOfOldAnswer);
+  // }
+
   // send updated options to team
   rooms[roomId].teams[team].map(player => {
     io.in(userIds[player.id].currentSocket).emit(
