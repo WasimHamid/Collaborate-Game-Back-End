@@ -3,7 +3,7 @@ var http = require("http").Server(app);
 var io = require("socket.io")(http);
 
 const testQuestions = require("./data4");
-
+const Room = require("./roomobject");
 let rooms = {};
 let userIds = {};
 
@@ -89,10 +89,11 @@ function removeUser(socket, { roomId, team, uid, i }) {
 function makeGameRoom(socket, { numberOfTeams, uid }) {
   // let teamColors = ["#EB4511", "#23C9FF", "#D2FF28", "#FFAD05"];
   let teamColors = ["dodgerblue", "Fuchsia", "palegoldenrod", "lime"];
-  let newRoom = {};
+  let newRoom = new Room();
   newRoom.id = getNewRoomId();
   newRoom.name = `room ${rooms.length + 1}`;
   newRoom.teams = {};
+  newRoom.teamsArray = [];
   newRoom.scores = {};
   newRoom.roundScores = {};
   newRoom.players = [];
@@ -104,6 +105,7 @@ function makeGameRoom(socket, { numberOfTeams, uid }) {
 
   for (var i = 0; i < numberOfTeams; i++) {
     newRoom.teams = { ...newRoom.teams, [teamColors[i]]: [] };
+    newRoom.teamsArray.push(teamColors[i]);
     newRoom.scores = { ...newRoom.scores, [teamColors[i]]: 0 };
     newRoom.roundScores = { ...newRoom.scores, [teamColors[i]]: 0 };
     newRoom.currentChoice = {
@@ -132,39 +134,24 @@ function enterGameRoom(socket, { roomId, uid }) {
   console.log("user id object", userIds[uid]);
 
   if (rooms[roomId]) {
-    let arrayOfTeamsInRoom = Object.keys(rooms[roomId].teams);
-
-    let isOnTeamInRoomAlready = arrayOfTeamsInRoom
-      .map(team =>
-        rooms[roomId].teams[team]
-          .map(player => {
-            if (player.id === uid) {
-              //do something here
-              socket.emit("enterGameRoom", rooms[roomId]);
-              socket.emit(
-                "gameMessage",
-                `you are in the ${team} team in room ${roomId}`
-              );
-              socket.emit("teamColor", team);
-              socket.emit("rejoinMidGame");
-              socket.join(roomId);
-              return true;
-            }
-          })
-          .includes(true)
-      )
-      .includes(true);
-
-    if (!isOnTeamInRoomAlready) {
-      if (rooms[roomId]) {
-        socket.emit("enterGameRoom", rooms[roomId]);
-        socket.emit(
-          "gameMessage",
-          `Welcome to ${roomId}! please enter your name and join a team`
-        );
-        socket.join(roomId);
-        console.log(socket.uid + " has joined " + roomId);
-      }
+    console.log("new array", rooms[roomId].teamsArray);
+    if (rooms[roomId].isPlayerInRoom(uid)) {
+      socket.emit("enterGameRoom", rooms[roomId]);
+      socket.emit(
+        "gameMessage",
+        `you are in the ${team} team in room ${roomId}`
+      );
+      socket.emit("teamColor", team);
+      socket.emit("rejoinMidGame");
+      socket.join(roomId);
+    } else {
+      socket.emit("enterGameRoom", rooms[roomId]);
+      socket.emit(
+        "gameMessage",
+        `Welcome to ${roomId}! please enter your name and join a team`
+      );
+      socket.join(roomId);
+      console.log(socket.uid + " has joined " + roomId);
     }
   } else {
     socket.emit(
@@ -175,22 +162,7 @@ function enterGameRoom(socket, { roomId, uid }) {
 }
 
 function joinTeam(socket, { roomId, team, name, uid }) {
-  let arrayOfTeamsInRoom = Object.keys(rooms[roomId].teams);
-
-  let isOnTeamInRoom = arrayOfTeamsInRoom
-    .map(teamInArr =>
-      rooms[roomId].teams[teamInArr]
-        .map(player => {
-          if (player.id === uid) {
-            //do something here
-            return true;
-          }
-        })
-        .includes(true)
-    )
-    .includes(true);
-
-  if (!isOnTeamInRoom) {
+  if (!rooms[roomId].isPlayerInRoom()) {
     rooms[roomId] = {
       ...rooms[roomId],
       teams: {
@@ -360,14 +332,12 @@ function sendConsecutiveQuestions(socket, roomId) {
 }
 
 function sendQuestion(socket, roomId, questionNumber = 0) {
-  rooms[roomId].teamsThatHaveSubmitted = [];
-  rooms[roomId].currentChoice = rooms[roomId].currentChoiceCopy;
-
-  let teams = Object.keys(rooms[roomId].teams);
+  rooms[roomId].resetTeamsThatHaveSubmitted();
+  rooms[roomId].resetCurrentChoice();
 
   let randomArray = shuffle([0, 1, 2, 3]);
 
-  teams.map(team => {
+  rooms[roomId].teamsArray.map(team => {
     rooms[roomId].teams[team].map((player, i) => {
       io.in(userIds[player.id].currentSocket).emit("cardMessage", {
         ...testQuestions[questionNumber].cards[randomArray[i]],
@@ -448,12 +418,7 @@ function updateCardOptions(
     );
   });
 
-  if (
-    rooms[roomId].currentChoice[team][1].length === 1 &&
-    rooms[roomId].currentChoice[team][2].length === 1 &&
-    rooms[roomId].currentChoice[team][3].length === 1 &&
-    rooms[roomId].currentChoice[team][4].length === 1
-  ) {
+  if (rooms[roomId].haveAllTeamsSubmitted()) {
     // send message to allow submit
     rooms[roomId].teams[team].map(player => {
       io.in(userIds[player.id].currentSocket).emit("submitAllowed", true);
@@ -473,10 +438,7 @@ function onTeamSubmit(socket, { roomId, team }) {
     rooms[roomId].teamsThatHaveSubmitted
   );
 
-  if (
-    rooms[roomId].teamsThatHaveSubmitted.length ===
-    Object.keys(rooms[roomId].teams).length
-  ) {
+  if (rooms[roomId].haveAllTeamsSubmitted()) {
     // trigger next thing
     setTimeout(() => endRoundAndSendScore(socket, roomId), 2000);
   }
@@ -507,17 +469,10 @@ function onTeamSubmit(socket, { roomId, team }) {
   });
 }
 
-// function startGame(socket, roomId) {
-//   io.in(roomId).emit("gameMessage", `game has started in ${roomId}`);
-//   rooms[roomId] = { ...rooms[roomId], questionNumber: 0 };
-// }
-
 function sendUpdatedScore(socket, roomId) {
-  let teams = Object.keys(rooms[roomId].teams);
-
   // this needs to change for score to behave correctly
 
-  teams.map(team => {
+  rooms[roomId].teamsArray.map(team => {
     console.log("round scores send update", rooms[roomId].roundScores[team]);
     rooms[roomId].scores[team] += rooms[roomId].roundScores[team];
     rooms[roomId].roundScores[team] = 0;
