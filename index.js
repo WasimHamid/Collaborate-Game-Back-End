@@ -273,7 +273,6 @@ function endRoundAndShowAnswer(socket, roomId) {
   });
 
   io.in(rooms[roomId].host).emit("messageAndNav", {
-    message: "",
     path: "/host/answer"
   });
   setTimeout(() => showScore(socket, roomId), hostAnswerTimeout);
@@ -282,7 +281,6 @@ function endRoundAndShowAnswer(socket, roomId) {
 function showScore(socket, roomId) {
   sendUpdatedScore(socket, roomId);
   io.in(rooms[roomId].host).emit("messageAndNav", {
-    message: "",
     path: "/host/score"
   });
   setTimeout(() => startGameLoop(socket, roomId), scoreBoardTimeout);
