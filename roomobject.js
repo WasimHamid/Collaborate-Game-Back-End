@@ -128,6 +128,17 @@ Room.prototype.isPlayerInRoom = function(uid) {
     })
     .includes(true);
 };
+Room.prototype.getPlayersTeam = function(uid) {
+  let teamPlayerIsOn;
+  this.teamsArray.map(team => {
+    this.teams[team].map(player => {
+      if (player.id === uid) {
+        teamPlayerIsOn = team;
+      }
+    });
+  });
+  return teamPlayerIsOn;
+};
 
 Room.prototype.resetTeamsThatHaveSubmitted = function() {
   this.teamsThatHaveSubmitted = [];

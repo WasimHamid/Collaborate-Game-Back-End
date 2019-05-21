@@ -115,6 +115,7 @@ function enterGameRoom(socket, { roomId, uid }) {
 
   if (rooms[roomId]) {
     if (rooms[roomId].isPlayerInRoom(uid)) {
+      let team = getPlayersTeam(uid);
       socket.emit("enterGameRoom", rooms[roomId]);
       socket.emit("messageAndNav", {
         message: `you are in the ${team} team in room ${roomId}`,
