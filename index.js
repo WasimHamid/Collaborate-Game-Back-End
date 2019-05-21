@@ -47,7 +47,7 @@ function onConnection(socket) {
   socket.on("enterGameRoom", data => catchError(socket, data, enterGameRoom));
   socket.on("joinTeam", data => catchError(socket, data, joinTeam));
   socket.on("startGame", roomNumber =>
-    catchError(socket, roomNumber, startGame)
+    catchError(socket, roomNumber, startGameLoop)
   );
   socket.on("deleteGameRoom", room => catchError(socket, room, deleteGameRoom));
 
@@ -110,7 +110,8 @@ function makeGameRoom(socket, { numberOfTeams, uid }) {
 }
 
 function enterGameRoom(socket, { roomId, uid }) {
-  console.log("user id object", userIds[uid]);
+  console.log("user id object", { roomId, uid });
+  console.log("is player in room", rooms[roomId].isPlayerInRoom(uid));
 
   if (rooms[roomId]) {
     if (rooms[roomId].isPlayerInRoom(uid)) {
@@ -153,8 +154,8 @@ function joinTeam(socket, { roomId, team, name, uid }) {
   }
 }
 
-function startGame(socket, roomId) {
-  console.log("game started");
+function startGameLoop(socket, roomId) {
+  console.log("game loop started");
   if (rooms[roomId].questionNumber < testQuestions.length) {
     io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
       message: testQuestions[rooms[roomId].questionNumber].roundinfo,
@@ -167,7 +168,7 @@ function startGame(socket, roomId) {
       roundCardTimeout
     );
   } else {
-    // finsih game here
+    // finish game here
     clearInterval(rooms[roomId].intervalIdCountdown);
     clearInterval(rooms[roomId].intervalIdRound);
     io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
@@ -187,10 +188,10 @@ function sendQuestionToHostWithCountdown(socket, roomId) {
     path: "/host/question"
   });
 
-  countDown(socket, roomId);
+  countDownWhileQuestionShown(socket, roomId);
 }
 
-function countDown(socket, roomId) {
+function countDownWhileQuestionShown(socket, roomId) {
   let count = questionSeconds;
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit("updateCounter", {
@@ -255,6 +256,22 @@ function roundTimer(socket, roomId) {
 function endRoundAndShowAnswer(socket, roomId) {
   clearInterval(rooms[roomId].intervalIdRound);
 
+  rooms[roomId].teamsArray.map(team => {
+    rooms[roomId].teams[team].map((player, i) => {
+      if (rooms[roomId].getCurrentScore(team) > 0) {
+        io.in(userIds[player.id].currentSocket).emit("roundHasFinished", {
+          message: `well done! you scored ${rooms[roomId].getCurrentScore(
+            team
+          )}`
+        });
+      } else {
+        io.in(userIds[player.id].currentSocket).emit("roundHasFinished", {
+          message: `uh oh, you scored NOTHING!!`
+        });
+      }
+    });
+  });
+
   io.in(rooms[roomId].host).emit("messageAndNav", {
     message: "",
     path: "/host/answer"
@@ -263,17 +280,21 @@ function endRoundAndShowAnswer(socket, roomId) {
 }
 
 function showScore(socket, roomId) {
-  rooms[roomId].teamsArray.map(team => {
-    rooms[roomId].teams[team].map((player, i) => {
-      io.in(userIds[player.id].currentSocket).emit("roundHasFinished");
-    });
-  });
   sendUpdatedScore(socket, roomId);
   io.in(rooms[roomId].host).emit("messageAndNav", {
     message: "",
     path: "/host/score"
   });
-  setTimeout(() => startGame(socket, roomId), scoreBoardTimeout);
+  setTimeout(() => startGameLoop(socket, roomId), scoreBoardTimeout);
+}
+
+function sendUpdatedScore(socket, roomId) {
+  rooms[roomId].addCurrentScoresToScoresArray();
+
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
+    "updateHostRoom",
+    rooms[roomId]
+  );
 }
 
 function shuffle(array) {
@@ -390,7 +411,7 @@ function onTeamSubmit(socket, { roomId, team }) {
 
   if (rooms[roomId].haveAllTeamsSubmitted()) {
     // trigger next thing
-    setTimeout(() => endRoundAndSendScore(socket, roomId), 2000);
+    setTimeout(() => endRoundAndShowAnswer(socket, roomId), 2000);
   }
 
   let answerKeyArray = [1, 2, 3, 4];
@@ -401,6 +422,7 @@ function onTeamSubmit(socket, { roomId, team }) {
       rooms[roomId].currentChoice[team][answerKey][0].answer ===
       rooms[roomId].currentChoice[team][answerKey][0].correctAnswer
     ) {
+      rooms[roomId].addToCurrentScore(team, points);
       rooms[roomId].roundScores[team] += points;
       answerFeedback.push({ color: "lightgreen", points });
     } else {
@@ -410,21 +432,9 @@ function onTeamSubmit(socket, { roomId, team }) {
 
   rooms[roomId].teams[team].map(player => {
     io.in(userIds[player.id].currentSocket).emit("answerFeedback", {
-      message: `well done, your team scored ${
-        rooms[roomId].roundScores[team]
-      }!`,
       feedback: answerFeedback
     });
   });
-}
-
-function sendUpdatedScore(socket, roomId) {
-  rooms[roomId].addAllTeamRoundsToTotalAndReset();
-
-  io.in(userIds[rooms[roomId].host].currentSocket).emit(
-    "updateHostRoom",
-    rooms[roomId]
-  );
 }
 
 http.listen(process.env.PORT || 6001, () => {
