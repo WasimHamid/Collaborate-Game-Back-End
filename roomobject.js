@@ -14,12 +14,20 @@ function Room(numberOfTeams, roomId, uid) {
   this.currentChoiceCopy = {};
   this.teamsThatHaveSubmitted = [];
   this.currentQuestion = [];
+  this.scoresForEachRound = {};
+  this.scoresArray = {};
 
   for (var i = 0; i < numberOfTeams; i++) {
     this.teams = { ...this.teams, [teamColors[i]]: [] };
+
+    this.currentScore = { ...this.currentScore, [teamColors[i]]: 0 };
+    this.scoresArray = { ...this.currentScore, [teamColors[i]]: [] };
+
     this.teamsArray.push(teamColors[i]);
+
     this.scores = { ...this.scores, [teamColors[i]]: 0 };
     this.roundScores = { ...this.scores, [teamColors[i]]: 0 };
+
     this.currentChoice = {
       ...this.currentChoice,
       [teamColors[i]]: { 1: [], 2: [], 3: [], 4: [] }
@@ -30,6 +38,49 @@ function Room(numberOfTeams, roomId, uid) {
     };
   }
 }
+
+Room.prototype.updateScoresAtEndOfRound = function() {
+  this.addCurrentScoresToScoresArray();
+  this.addScoresArrayTotalToScore();
+};
+
+Room.prototype.addCurrentScoresToScoresArray = function() {
+  this.teamsArray.map(team => {
+    this.scoresArray[team].push({ score: this.currentScore[team] });
+    this.currentScore[team] = 0;
+  });
+};
+
+Room.prototype.addScoresArrayTotalToScore = function() {
+  this.teamsArray.map(team => {
+    this.scores[team] = this.getTotalScoreForTeam(team).score;
+  });
+};
+
+Room.prototype.addToCurrentScore = function(team, score) {
+  this.currentScore[team] += score;
+};
+
+Room.prototype.getCurrentScore = function(team) {
+  return this.currentScore[team];
+};
+
+// Room.prototype.getScoreForCurrentRound = function(team) {
+//   return this.scoresArray[team][this.questionNumber].score;
+// };
+
+Room.prototype.getTotalScoreForTeam = function(team) {
+  return this.scoresArray[team].reduce((a, b) => ({
+    score: a.score + b.score
+  }));
+};
+
+// Room.prototype.addBonusForFastestCorrect = function(team, bonus) {
+//   this.scoresArray[team][this.questionNumber] = {
+//     ...this.scoresArray[team][this.questionNumber],
+//     score: this.scoresForEachRound[team][this.questionNumber] + bonus
+//   };
+// };
 
 Room.prototype.resetCurrentChoice = function() {
   this.currentChoice = this.currentChoiceCopy;
@@ -132,11 +183,6 @@ Room.prototype.addRoundsToTotalAndResetForTeam = function(team) {
   this.roundScores[team] = 0;
 };
 
-Room.prototype.addAllTeamRoundsToTotalAndReset = function() {
-  this.teamsArray.map(team => {
-    this.addRoundsToTotalAndResetForTeam(team);
-  });
-};
 Room.prototype.addToCurrentQuestion = function(cards) {
   this.currentQuestion = cards;
 };
