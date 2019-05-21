@@ -289,7 +289,7 @@ function showScore(socket, roomId) {
 }
 
 function sendUpdatedScore(socket, roomId) {
-  rooms[roomId].addCurrentScoresToScoresArray();
+  rooms[roomId].updateScoresAtEndOfRound();
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "updateHostRoom",

@@ -39,10 +39,21 @@ function Room(numberOfTeams, roomId, uid) {
   }
 }
 
+Room.prototype.updateScoresAtEndOfRound = function() {
+  this.addCurrentScoresToScoresArray();
+  this.addScoresArrayTotalToScore();
+};
+
 Room.prototype.addCurrentScoresToScoresArray = function() {
   this.teamsArray.map(team => {
     this.scoresArray[team].push({ score: this.currentScore[team] });
     this.currentScore[team] = 0;
+  });
+};
+
+Room.prototype.addScoresArrayTotalToScore = function() {
+  this.teamsArray.map(team => {
+    this.scores[team] = this.getTotalScoreForTeam(team).score;
   });
 };
 
