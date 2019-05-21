@@ -2,7 +2,7 @@ var app = require("express")();
 var http = require("http").Server(app);
 var io = require("socket.io")(http);
 
-const testQuestions = require("./data4");
+const testQuestions = require("./pictureRound");
 const Room = require("./roomobject");
 let rooms = {};
 let userIds = {};
@@ -330,26 +330,39 @@ function sendConsecutiveQuestions(socket, roomId) {
 function sendQuestion(socket, roomId, questionNumber = 0) {
   rooms[roomId].resetTeamsThatHaveSubmitted();
   rooms[roomId].resetCurrentChoice();
-  rooms[roomId].addToCurrentQuestion(testQuestions[questionNumber].cards);
   let randomArray = shuffle([0, 1, 2, 3]);
 
-  rooms[roomId].teamsArray.map(team => {
-    rooms[roomId].teams[team].map((player, i) => {
-      io.in(userIds[player.id].currentSocket).emit("cardMessage", {
-        ...testQuestions[questionNumber].cards[randomArray[i]],
-        instruction: testQuestions[questionNumber].instruction
+  if (testQuestions[questionNumber].questionType === "order") {
+    console.log("question type order");
+    rooms[roomId].addToCurrentQuestion(testQuestions[questionNumber].cards);
+
+    rooms[roomId].teamsArray.map(team => {
+      rooms[roomId].teams[team].map((player, i) => {
+        io.in(userIds[player.id].currentSocket).emit("cardMessage", {
+          ...testQuestions[questionNumber].cards[randomArray[i]],
+          instruction: testQuestions[questionNumber].instruction
+        });
       });
     });
-  });
 
-  io.in(userIds[rooms[roomId].host].currentSocket).emit(
-    "gameMessage",
-    testQuestions[questionNumber].question
-  );
-  io.in(userIds[rooms[roomId].host].currentSocket).emit(
-    "tidbit",
-    testQuestions[questionNumber].tidbit
-  );
+    io.in(userIds[rooms[roomId].host].currentSocket).emit(
+      "gameMessage",
+      testQuestions[questionNumber].question
+    );
+    io.in(userIds[rooms[roomId].host].currentSocket).emit(
+      "tidbit",
+      testQuestions[questionNumber].tidbit
+    );
+  } else if (testQuestions[questionNumber].questionType === "picture") {
+    rooms[roomId].teamsArray.map(team => {
+      rooms[roomId].teams[team].map((player, i) => {
+        io.in(userIds[player.id].currentSocket).emit(
+          "pictureMessage",
+          testQuestions[questionNumber].cards[randomArray[i]]
+        );
+      });
+    });
+  }
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "updateHostRoom",

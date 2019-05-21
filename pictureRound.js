@@ -1,5 +1,47 @@
 module.exports = [
   {
+    questionType: "picture",
+    roundinfo: "picture round",
+    question: "what is this a picute of?",
+    cards: [
+      { url: "https://i.imgur.com/whEMKxw.jpg" },
+      { url: "https://i.imgur.com/Tr3Beaj.jpg" },
+      { url: "https://i.imgur.com/mcnMQOH.jpg" },
+      { url: "https://i.imgur.com/iMJLjUi.jpg" }
+    ],
+    answer: "LG logo"
+  },
+
+  {
+    questionType: "order",
+    roundinfo: "Hollywood or bust!",
+    question: "List these movie stars by who has been married the most!",
+    cards: [
+      { text: "Zsa Zsa Gabor", order: 1 },
+      { text: "Elizabeth Taylor", order: 2 },
+      { text: "Joan Collins", order: 3 },
+      { text: "Demi Moore", order: 4 }
+    ],
+    instruction: ["Most married", "Least married"],
+    tidbit: "Elizabeth Taylor was married to Conrad Hilton for only 205 days!"
+  },
+
+  {
+    questionType: "order",
+    roundinfo: "I could take him!......I think?",
+    question:
+      "Order these superheroes by their strength.  Start with the strongest!",
+    cards: [
+      { text: "The Thing", order: 3 },
+      { text: "Colossus", order: 4 },
+      { text: "Hulk", order: 1 },
+      { text: "Thor", order: 2 }
+    ],
+    instruction: ["Strongest", "Weakest"],
+    tidbit:
+      "Colossus is made from a substance resembling steel. It is of unknown composition, but appears to be analogous to osmium and carbon steel."
+  },
+  {
     questionType: "order",
     roundinfo: "Wow, they could really sing!",
     question: "List these celebrity deaths starting with the most recent",
@@ -61,6 +103,7 @@ module.exports = [
   },
 
   {
+    questionType: "order",
     roundinfo: "Motorway Madness!",
     question: "Order these UK motorways starting with the shortest!",
     cards: [
@@ -75,6 +118,7 @@ module.exports = [
   },
 
   {
+    questionType: "order",
     roundinfo: "One sheep, Two sheep, Three sheep...",
     question:
       "Order the answers of these maths questions from lowest to highest.",
@@ -90,6 +134,7 @@ module.exports = [
   },
 
   {
+    questionType: "order",
     roundinfo: "Fourrrrrrrr!........",
     question: "Order these golf hole scores beginning with the best. ",
     cards: [
@@ -104,6 +149,7 @@ module.exports = [
   },
 
   {
+    questionType: "order",
     roundinfo: "Diesel, Petrol or Hybrid?",
     question:
       "Order these car manufacturers from most reliable to least reliable as recorded in AutoExpress 2018. ",
