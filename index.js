@@ -3,7 +3,7 @@ var http = require("http").Server(app);
 var io = require("socket.io")(http);
 
 const testQuestions = require("./pictureRound");
-const Room = require("./roomobject");
+const Room = require("./libs/Room");
 let rooms = {};
 let userIds = {};
 
@@ -115,14 +115,23 @@ function enterGameRoom(socket, { roomId, uid }) {
 
   if (rooms[roomId]) {
     if (rooms[roomId].isPlayerInRoom(uid)) {
-      let team = getPlayersTeam(uid);
-      socket.emit("enterGameRoom", rooms[roomId]);
+      let team = rooms[roomId].getPlayersTeam(uid);
+      console.log("get players team", team);
+      console.log("rooms[roomId]", rooms[roomId]);
+      const { intervalIdCountdown, intervalIdRound, ...dataToSend } = rooms[
+        roomId
+      ];
+      socket.emit("enterGameRoom", dataToSend);
+      console.log("after emit game room");
       socket.emit("messageAndNav", {
         message: `you are in the ${team} team in room ${roomId}`,
         path: "/play/holding"
       });
+      console.log("after message and nav");
       socket.emit("teamColor", team);
+      console.log("after team color");
       socket.join(roomId);
+      console.log("after socket .join");
     } else {
       socket.emit("enterGameRoom", rooms[roomId]);
       socket.emit(
@@ -138,6 +147,7 @@ function enterGameRoom(socket, { roomId, uid }) {
       `Sorry we couldn't find ${roomId}, please try again`
     );
   }
+  console.log("made it to the end of makeGameRoom");
 }
 
 function joinTeam(socket, { roomId, team, name, uid }) {

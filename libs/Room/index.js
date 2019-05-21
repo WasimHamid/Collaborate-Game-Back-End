@@ -1,5 +1,22 @@
 let teamColors = ["dodgerblue", "Fuchsia", "palegoldenrod", "lime"];
 
+// Polyfill for Array.flat()
+if (!Array.prototype.flat) {
+  Array.prototype.flat = function(depth) {
+    var flattend = [];
+    (function flat(array, depth) {
+      for (let el of array) {
+        if (Array.isArray(el) && depth > 0) {
+          flat(el, depth - 1);
+        } else {
+          flattend.push(el);
+        }
+      }
+    })(this, Math.floor(depth) || 1);
+    return flattend;
+  };
+}
+
 function Room(numberOfTeams, roomId, uid) {
   this.id = roomId;
   this.name = `room name`;
@@ -116,18 +133,20 @@ Room.prototype.addAnswer = function(
 };
 
 Room.prototype.isPlayerInRoom = function(uid) {
-  console.log("is player in room");
-  return this.teamsArray
-    .map(team => {
-      console.log(this.teams);
-      this.teams[team]
-        .map(player => {
-          return player.id === uid;
-        })
-        .includes(true);
-    })
-    .includes(true);
+  // for (let i = 0; i < this.teamsArray.length; i++) {
+  //   for (let j = 0; j < this.teams[this.teamsArray[i]].length; j++) {
+  //     if (this.teams[this.teamsArray[i]][j].id === uid) {
+  //       return true;
+  //     }
+  //   }
+  // }
+  console.log("obj val", Object.values(this.teams).flat());
+  console.log("uid", uid);
+  return Object.values(this.teams)
+    .flat()
+    .some(({ id }) => id === uid);
 };
+
 Room.prototype.getPlayersTeam = function(uid) {
   let teamPlayerIsOn;
   this.teamsArray.map(team => {
