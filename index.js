@@ -490,7 +490,7 @@ function checkAnswersForOrderRound(roomId, team) {
 
   rooms[roomId].teams[team].map(player => {
     io.in(userIds[player.id].currentSocket).emit("answerFeedback", {
-      feedback: rooms[roomId].answerFeedback[team]
+      feedback: rooms[roomId].getAnswerFeedback(team)
     });
   });
 }
