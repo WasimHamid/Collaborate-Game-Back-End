@@ -273,10 +273,6 @@ function sendQuestion(socket, roomId, questionNumber = 0) {
       "gameMessage",
       testQuestions[questionNumber].question
     );
-    io.in(userIds[rooms[roomId].host].currentSocket).emit(
-      "tidbit",
-      testQuestions[questionNumber].tidbit
-    );
   } else if (testQuestions[questionNumber].questionType === "picture") {
     rooms[roomId].teamsArray.map(team => {
       rooms[roomId].teams[team].map((player, i) => {
