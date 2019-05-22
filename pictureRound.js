@@ -2,16 +2,15 @@ module.exports = [
   {
     questionType: "picture",
     roundinfo: "picture round",
-    question: "what is this a picute of?",
+    question: "what is this a picture of?",
     cards: [
-      { url: "https://i.imgur.com/whEMKxw.jpg" },
-      { url: "https://i.imgur.com/Tr3Beaj.jpg" },
-      { url: "https://i.imgur.com/mcnMQOH.jpg" },
-      { url: "https://i.imgur.com/iMJLjUi.jpg" }
+      { url: "https://i.imgur.com/2kKRCfA.jpg" },
+      { url: "https://i.imgur.com/OlVIh9Q.jpg" },
+      { url: "https://i.imgur.com/9xf086M.jpg?1" },
+      { url: "https://i.imgur.com/YfC9trH.jpg" }
     ],
-    answer: "LG logo"
+    answer: "DOG"
   },
-
   {
     questionType: "order",
     roundinfo: "Hollywood or bust!",
@@ -24,6 +23,30 @@ module.exports = [
     ],
     instruction: ["Most married", "Least married"],
     tidbit: "Elizabeth Taylor was married to Conrad Hilton for only 205 days!"
+  },
+  {
+    questionType: "picture",
+    roundinfo: "picture round",
+    question: "what is this a picture of?",
+    cards: [
+      { url: "https://i.imgur.com/jsorCzo.jpg" },
+      { url: "https://i.imgur.com/PowPXCp.jpg" },
+      { url: "https://i.imgur.com/gS0LOYY.jpg" },
+      { url: "https://i.imgur.com/naLAgDX.jpg" }
+    ],
+    answer: "HARRY POTTER"
+  },
+  {
+    questionType: "picture",
+    roundinfo: "picture round",
+    question: "what is this a picture of?",
+    cards: [
+      { url: "https://i.imgur.com/EDKgovy.png" },
+      { url: "https://i.imgur.com/QgVov93.png" },
+      { url: "https://i.imgur.com/UcMoyhn.png" },
+      { url: "https://i.imgur.com/dDN8mQS.png" }
+    ],
+    answer: "ROBOT"
   },
 
   {
