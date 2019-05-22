@@ -193,10 +193,10 @@ function startGameLoop(socket, roomId) {
     );
   } else {
     // finish game here
-    clearInterval(rooms[roomId].intervalIdCountdown);
-    clearInterval(rooms[roomId].intervalIdRound);
+    // clearInterval(rooms[roomId].intervalIdCountdown);
+    // clearInterval(rooms[roomId].intervalIdRound);
     io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
-      path: "/host/scores"
+      path: "/host/endpage"
     });
   }
 }
