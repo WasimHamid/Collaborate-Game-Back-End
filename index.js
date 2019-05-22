@@ -4,6 +4,7 @@ var io = require("socket.io")(http);
 
 const testQuestions = require("./pictureRound");
 const Room = require("./libs/Room");
+const Utils = require("./libs/Utils");
 let rooms = {};
 let userIds = {};
 
@@ -14,10 +15,6 @@ const answerSeconds = 30;
 const hostAnswerTimeout = 5000;
 
 const points = 100;
-
-function getNewRoomId() {
-  return Math.floor(Math.random() * 9000 + 1000);
-}
 
 // this calls onConnection when user connects
 io.on("connection", onConnection);
@@ -61,6 +58,9 @@ function onConnection(socket) {
   socket.on("getCurrentScore", roomId =>
     catchError(socket, roomId, sendUpdatedScore)
   );
+  socket.on("livePictureAnswer", data =>
+    catchError(socket, data, onLivePictureTextInput)
+  );
 }
 
 function catchError(socket, data, action) {
@@ -83,7 +83,10 @@ function login(socket, uid) {
   Object.keys(rooms).map(room => {
     if (rooms[room].host === uid) {
       console.log("a host has appeard");
-      io.in(uid).emit("makeGameRoom", rooms[room]);
+      const { intervalIdCountdown, intervalIdRound, ...dataToSend } = rooms[
+        roomId
+      ];
+      io.in(uid).emit("makeGameRoom", dataToSend);
     }
   });
 }
@@ -95,7 +98,7 @@ function removeUser(socket, { roomId, team, uid, i }) {
 }
 
 function makeGameRoom(socket, { numberOfTeams, uid }) {
-  let newRoom = new Room(numberOfTeams, getNewRoomId(), uid);
+  let newRoom = new Room(numberOfTeams, Utils.getNewRoomId(), uid);
 
   rooms[newRoom.id] = newRoom;
 
@@ -174,6 +177,16 @@ function startGameLoop(socket, roomId) {
       path: "/host/roundcard"
     });
 
+    rooms[roomId].teamsArray.map(team => {
+      rooms[roomId].teams[team].map((player, i) => {
+        io.in(userIds[player.id].currentSocket).emit("messageAndNav", {
+          message: testQuestions[rooms[roomId].questionNumber].roundinfo,
+          roundNumber: rooms[roomId].questionNumber + 1,
+          path: "/play/round"
+        });
+      });
+    });
+
     setTimeout(
       () => sendQuestionToHostWithCountdown(socket, roomId),
       roundCardTimeout
@@ -198,7 +211,7 @@ function sendQuestionToHostWithCountdown(socket, roomId) {
     message: testQuestions[rooms[roomId].questionNumber].question,
     path: "/host/question"
   });
-
+  rooms[roomId].resetAtBegginingOfRound();
   countDownWhileQuestionShown(socket, roomId);
 }
 
@@ -224,6 +237,63 @@ function countDownWhileQuestionShown(socket, roomId) {
       sendConsecutiveQuestions(socket, roomId);
     }
   }, 1500);
+}
+function sendConsecutiveQuestions(socket, roomId) {
+  if (rooms[roomId].questionNumber < testQuestions.length) {
+    sendQuestion(socket, roomId, rooms[roomId].questionNumber);
+    roundTimer(socket, roomId);
+    // rooms[roomId].addToQuestionNumber();
+  } else {
+    io.in(roomId).emit("gameMessage", `no more questions`);
+    sendUpdatedScore(socket, roomId);
+    io.in(rooms[roomId].host).emit("messageAndNav", {
+      message: "",
+      path: "/host/score"
+    });
+  }
+}
+
+function sendQuestion(socket, roomId, questionNumber = 0) {
+  let randomArray = Utils.getShuffledArray();
+
+  if (testQuestions[questionNumber].questionType === "order") {
+    console.log("question type order");
+    rooms[roomId].addToCurrentQuestion(testQuestions[questionNumber].cards);
+
+    rooms[roomId].teamsArray.map(team => {
+      rooms[roomId].teams[team].map((player, i) => {
+        io.in(userIds[player.id].currentSocket).emit("cardMessage", {
+          ...testQuestions[questionNumber].cards[randomArray[i]],
+          instruction: testQuestions[questionNumber].instruction
+        });
+      });
+    });
+
+    io.in(userIds[rooms[roomId].host].currentSocket).emit(
+      "gameMessage",
+      testQuestions[questionNumber].question
+    );
+    io.in(userIds[rooms[roomId].host].currentSocket).emit(
+      "tidbit",
+      testQuestions[questionNumber].tidbit
+    );
+  } else if (testQuestions[questionNumber].questionType === "picture") {
+    rooms[roomId].teamsArray.map(team => {
+      rooms[roomId].teams[team].map((player, i) => {
+        io.in(userIds[player.id].currentSocket).emit(
+          "pictureMessage",
+          testQuestions[questionNumber].cards[randomArray[i]]
+        );
+      });
+    });
+  }
+
+  io.in(userIds[rooms[roomId].host].currentSocket).emit(
+    "updateHostRoom",
+    rooms[roomId]
+  );
+
+  console.log(`question has been sent to ${roomId}`);
 }
 
 function roundTimer(socket, roomId) {
@@ -294,6 +364,7 @@ function showScore(socket, roomId) {
   io.in(rooms[roomId].host).emit("messageAndNav", {
     path: "/host/score"
   });
+  rooms[roomId].addToQuestionNumber();
   setTimeout(() => startGameLoop(socket, roomId), scoreBoardTimeout);
 }
 
@@ -304,83 +375,6 @@ function sendUpdatedScore(socket, roomId) {
     "updateHostRoom",
     rooms[roomId]
   );
-}
-
-function shuffle(array) {
-  var currentIndex = array.length,
-    temporaryValue,
-    randomIndex;
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
-  }
-  return array;
-}
-
-function sendConsecutiveQuestions(socket, roomId) {
-  if (rooms[roomId].questionNumber < testQuestions.length) {
-    sendQuestion(socket, roomId, rooms[roomId].questionNumber);
-    roundTimer(socket, roomId);
-    rooms[roomId].addToQuestionNumber();
-  } else {
-    io.in(roomId).emit("gameMessage", `no more questions`);
-    sendUpdatedScore(socket, roomId);
-    io.in(rooms[roomId].host).emit("messageAndNav", {
-      message: "",
-      path: "/host/score"
-    });
-  }
-}
-
-function sendQuestion(socket, roomId, questionNumber = 0) {
-  rooms[roomId].resetTeamsThatHaveSubmitted();
-  rooms[roomId].resetCurrentChoice();
-  let randomArray = shuffle([0, 1, 2, 3]);
-
-  if (testQuestions[questionNumber].questionType === "order") {
-    console.log("question type order");
-    rooms[roomId].addToCurrentQuestion(testQuestions[questionNumber].cards);
-
-    rooms[roomId].teamsArray.map(team => {
-      rooms[roomId].teams[team].map((player, i) => {
-        io.in(userIds[player.id].currentSocket).emit("cardMessage", {
-          ...testQuestions[questionNumber].cards[randomArray[i]],
-          instruction: testQuestions[questionNumber].instruction
-        });
-      });
-    });
-
-    io.in(userIds[rooms[roomId].host].currentSocket).emit(
-      "gameMessage",
-      testQuestions[questionNumber].question
-    );
-    io.in(userIds[rooms[roomId].host].currentSocket).emit(
-      "tidbit",
-      testQuestions[questionNumber].tidbit
-    );
-  } else if (testQuestions[questionNumber].questionType === "picture") {
-    rooms[roomId].teamsArray.map(team => {
-      rooms[roomId].teams[team].map((player, i) => {
-        io.in(userIds[player.id].currentSocket).emit(
-          "pictureMessage",
-          testQuestions[questionNumber].cards[randomArray[i]]
-        );
-      });
-    });
-  }
-
-  io.in(userIds[rooms[roomId].host].currentSocket).emit(
-    "updateHostRoom",
-    rooms[roomId]
-  );
-
-  console.log(`question has been sent to ${roomId}`);
 }
 
 function deleteGameRoom(socket, roomId) {
@@ -419,6 +413,29 @@ function updateCardOptions(
   }
 }
 
+function onLivePictureTextInput(socket, { roomId, team, text }) {
+  console.log(roomId, team, text);
+
+  rooms[roomId].updatePictureAnswerStrings(team, text);
+
+  if (rooms[roomId].pictureAnswerStrings[team].length > 1) {
+    rooms[roomId].teams[team].map(player => {
+      io.in(userIds[player.id].currentSocket).emit("submitAllowed", true);
+    });
+  } else {
+    rooms[roomId].teams[team].map(player => {
+      io.in(userIds[player.id].currentSocket).emit("submitAllowed", false);
+    });
+  }
+
+  rooms[roomId].teams[team].map(player => {
+    io.in(userIds[player.id].currentSocket).emit(
+      "livePictureAnswer",
+      rooms[roomId].pictureAnswerStrings[team]
+    );
+  });
+}
+
 function onTeamSubmit(socket, { roomId, team }) {
   rooms[roomId].teamsThatHaveSubmitted.push(team);
 
@@ -435,26 +452,49 @@ function onTeamSubmit(socket, { roomId, team }) {
     // trigger next thing
     setTimeout(() => endRoundAndShowAnswer(socket, roomId), 2000);
   }
+  console.log(
+    "questionType",
+    testQuestions[rooms[roomId].questionNumber].questionType
+  );
+  switch (testQuestions[rooms[roomId].questionNumber].questionType) {
+    case "order":
+      checkAnswersForOrderRound(roomId, team);
+      break;
+    case "picture":
+      checkAnswersForPictureRound(roomId, team);
+      break;
+    default:
+      console.log("switch has not recieved valid question type");
+    // code block
+  }
+}
 
-  let answerKeyArray = [1, 2, 3, 4];
-  let answerFeedback = [];
+function checkAnswersForPictureRound(roomId, team) {
+  if (rooms[roomId].markPictureQuestion(team)) {
+    rooms[roomId].teams[team].map(player => {
+      io.in(userIds[player.id].currentSocket).emit(
+        "pictureAnswerFeedback",
+        "CORRECT"
+      );
+    });
+  } else {
+    rooms[roomId].teams[team].map(player => {
+      io.in(userIds[player.id].currentSocket).emit(
+        "pictureAnswerFeedback",
+        "WRONG"
+      );
+    });
+  }
+}
 
-  answerKeyArray.map(answerKey => {
-    if (
-      rooms[roomId].currentChoice[team][answerKey][0].answer ===
-      rooms[roomId].currentChoice[team][answerKey][0].correctAnswer
-    ) {
-      rooms[roomId].addToCurrentScore(team, points);
-      rooms[roomId].roundScores[team] += points;
-      answerFeedback.push({ color: "lightgreen", points });
-    } else {
-      answerFeedback.push({ color: "red", points: 0 });
-    }
-  });
+function checkAnswersForOrderRound(roomId, team) {
+  rooms[roomId].markOrderQuestion(team);
+
+  console.log("answer feedback in app", rooms[roomId].answerFeedback[team]);
 
   rooms[roomId].teams[team].map(player => {
     io.in(userIds[player.id].currentSocket).emit("answerFeedback", {
-      feedback: answerFeedback
+      feedback: rooms[roomId].answerFeedback[team]
     });
   });
 }
