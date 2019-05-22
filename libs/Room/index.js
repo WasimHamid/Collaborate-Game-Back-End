@@ -123,11 +123,13 @@ Room.prototype.updatePictureAnswerStrings = function(team, text) {
   this.pictureAnswerStrings[team] = `${text.toUpperCase()}`;
 };
 
+// test in place
 Room.prototype.updateScoresAtEndOfRound = function() {
   this.addCurrentScoresToScoresArray();
   this.addScoresArrayTotalToScore();
 };
 
+// test in place
 Room.prototype.addCurrentScoresToScoresArray = function() {
   this.teamsArray.map(team => {
     console.log("addCurrentScoresToScoresArray", this.scoresArray[team]);
@@ -136,16 +138,19 @@ Room.prototype.addCurrentScoresToScoresArray = function() {
   });
 };
 
+//test in place
 Room.prototype.addScoresArrayTotalToScore = function() {
   this.teamsArray.map(team => {
     this.scores[team] = this.getTotalScoreForTeam(team).score;
   });
 };
 
+//test in place
 Room.prototype.addToCurrentScore = function(team, score) {
   this.currentScore[team] += score;
 };
 
+// test in place ish
 Room.prototype.getCurrentScore = function(team) {
   return this.currentScore[team];
 };
@@ -167,12 +172,15 @@ Room.prototype.getTotalScoreForTeam = function(team) {
 //   };
 // };
 
+// test in place
 Room.prototype.addPlayerToTeam = function(team, name, uid) {
   this.teams = {
     ...this.teams,
     [team]: [...this.teams[team], { id: uid, name }]
   };
 };
+
+// test in place
 Room.prototype.addToQuestionNumber = function() {
   this.questionNumber += 1;
 };
@@ -197,13 +205,6 @@ Room.prototype.addAnswer = function(
 };
 
 Room.prototype.isPlayerInRoom = function(uid) {
-  // for (let i = 0; i < this.teamsArray.length; i++) {
-  //   for (let j = 0; j < this.teams[this.teamsArray[i]].length; j++) {
-  //     if (this.teams[this.teamsArray[i]][j].id === uid) {
-  //       return true;
-  //     }
-  //   }
-  // }
   console.log("obj val", Object.values(this.teams).flat());
   console.log("uid", uid);
   return Object.values(this.teams)

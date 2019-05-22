@@ -7,6 +7,10 @@
     "socket.io": "^2.2.0"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^24.8.0"
   }
 }

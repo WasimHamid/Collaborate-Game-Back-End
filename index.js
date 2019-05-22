@@ -2,7 +2,7 @@ var app = require("express")();
 var http = require("http").Server(app);
 var io = require("socket.io")(http);
 
-const testQuestions = require("./libs/Questions/data5");
+const testQuestions = require("./pictureRound");
 const Room = require("./libs/Room");
 const Utils = require("./libs/Utils");
 let rooms = {};
@@ -13,8 +13,7 @@ const roundCardTimeout = 6000;
 const questionSeconds = 3;
 const answerSeconds = 30;
 const hostAnswerTimeout = 5000;
-
-const points = 100;
+const pauseFactor = 1500;
 
 // this calls onConnection when user connects
 io.on("connection", onConnection);
@@ -83,10 +82,11 @@ function login(socket, uid) {
   Object.keys(rooms).map(room => {
     if (rooms[room].host === uid) {
       console.log("a host has appeard");
-      const { intervalIdCountdown, intervalIdRound, ...dataToSend } = rooms[
-        roomId
-      ];
-      io.in(uid).emit("makeGameRoom", dataToSend);
+
+      io.in(uid).emit(
+        "makeGameRoom",
+        Utils.getRoomReadyForSending(rooms[roomId])
+      );
     }
   });
 }
@@ -94,7 +94,7 @@ function login(socket, uid) {
 function removeUser(socket, { roomId, team, uid, i }) {
   console.log("user removed");
   rooms[roomId].teams[team].splice(i, 1);
-  socket.emit("updateHostRoom", rooms[roomId]);
+  socket.emit("updateHostRoom", Utils.getRoomReadyForSending(rooms[roomId]));
 }
 
 function makeGameRoom(socket, { numberOfTeams, uid }) {
@@ -121,10 +121,7 @@ function enterGameRoom(socket, { roomId, uid }) {
       let team = rooms[roomId].getPlayersTeam(uid);
       console.log("get players team", team);
       console.log("rooms[roomId]", rooms[roomId]);
-      const { intervalIdCountdown, intervalIdRound, ...dataToSend } = rooms[
-        roomId
-      ];
-      socket.emit("enterGameRoom", dataToSend);
+      socket.emit("enterGameRoom", Utils.getRoomReadyForSending(rooms[roomId]));
       console.log("after emit game room");
       socket.emit("messageAndNav", {
         message: `you are in the ${team} team in room ${roomId}`,
@@ -159,9 +156,10 @@ function joinTeam(socket, { roomId, team, name, uid }) {
     socket.join(uid);
     socket.emit("gameMessage", `you are in the ${team} team in room ${roomId}`);
     socket.emit("teamColor", team);
+
     io.in(userIds[rooms[roomId].host].currentSocket).emit(
       "updateHostRoom",
-      rooms[roomId]
+      Utils.getRoomReadyForSending(rooms[roomId])
     );
     console.log(`${name} has joined ${roomId}`);
     console.log(rooms[roomId].teams);
@@ -236,7 +234,7 @@ function countDownWhileQuestionShown(socket, roomId) {
       });
       sendConsecutiveQuestions(socket, roomId);
     }
-  }, 1500);
+  }, pauseFactor);
 }
 function sendConsecutiveQuestions(socket, roomId) {
   if (rooms[roomId].questionNumber < testQuestions.length) {
@@ -286,7 +284,7 @@ function sendQuestion(socket, roomId, questionNumber = 0) {
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "updateHostRoom",
-    rooms[roomId]
+    Utils.getRoomReadyForSending(rooms[roomId])
   );
 
   console.log(`question has been sent to ${roomId}`);
@@ -369,7 +367,7 @@ function sendUpdatedScore(socket, roomId) {
 
   io.in(userIds[rooms[roomId].host].currentSocket).emit(
     "updateHostRoom",
-    rooms[roomId]
+    Utils.getRoomReadyForSending(rooms[roomId])
   );
 }
 
