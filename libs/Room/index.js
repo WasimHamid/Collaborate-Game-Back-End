@@ -35,6 +35,7 @@ function Room(numberOfTeams, roomId, uid) {
   this.scoresForEachRound = {};
   this.scoresArray = {};
   this.pictureAnswerStrings = {};
+  this.pictureAnswerStringsCopy = {};
   this.answerFeedback = {};
   this.answerFeedbackCopy = {};
 
@@ -42,6 +43,10 @@ function Room(numberOfTeams, roomId, uid) {
     this.teams = { ...this.teams, [teamColors[i]]: [] };
     this.pictureAnswerStrings = {
       ...this.pictureAnswerStrings,
+      [teamColors[i]]: ""
+    };
+    this.pictureAnswerStringsCopy = {
+      ...this.pictureAnswerStringsCopy,
       [teamColors[i]]: ""
     };
 
@@ -70,19 +75,15 @@ function Room(numberOfTeams, roomId, uid) {
 }
 
 Room.prototype.resetAtBegginingOfRound = function() {
-  this.resetTeamsThatHaveSubmitted();
-  this.resetCurrentChoice();
-  this.resetAnswerFeedback();
+  this.teamsThatHaveSubmitted = [];
+  this.currentQuestion = [];
+  this.answerFeedback = this.answerFeedbackCopy;
+  this.currentChoice = this.currentChoiceCopy;
+  this.pictureAnswerStrings = this.pictureAnswerStringsCopy;
 };
 
-Room.prototype.resetCurrentChoice = function() {
-  this.currentChoice = this.currentChoiceCopy;
-};
-Room.prototype.resetAnswerFeedback = function() {
-  this.answerFeedback = this.answerFeedbackCopy;
-};
-Room.prototype.resetTeamsThatHaveSubmitted = function() {
-  this.teamsThatHaveSubmitted = [];
+Room.prototype.getAnswerFeedback = function(team) {
+  return this.answerFeedback[team];
 };
 
 Room.prototype.markPictureQuestion = function(team) {
@@ -101,7 +102,7 @@ Room.prototype.markPictureQuestion = function(team) {
 };
 
 Room.prototype.markOrderQuestion = function(team) {
-  points = 100 * (this.questionNumber + 1);
+  let points = 100 * (this.questionNumber + 1);
   let answerKeyArray = [1, 2, 3, 4];
 
   answerKeyArray.map(answerKey => {
