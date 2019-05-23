@@ -177,6 +177,12 @@ Room.prototype.addPlayerToTeam = function(team, name, uid) {
   };
 };
 
+Room.prototype.removePlayerFromTeamAndGetUid = function(team, i) {
+  let uid = this.teams[team][i].id;
+  this.teams[team].splice(i, 1);
+  return uid;
+};
+
 // test in place
 Room.prototype.addToQuestionNumber = function() {
   this.questionNumber += 1;
