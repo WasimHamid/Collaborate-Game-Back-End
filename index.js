@@ -93,7 +93,13 @@ function login(socket, uid) {
 
 function removeUser(socket, { roomId, team, uid, i }) {
   console.log("user removed");
-  rooms[roomId].teams[team].splice(i, 1);
+  // rooms[roomId].teams[team].splice(i, 1);
+
+  let playerUid = rooms[roomId].removePlayerFromTeamAndGetUid(team, i);
+  io.in(userIds[playerUid].currentSocket).emit("messageAndNav", {
+    message: ``,
+    path: "/play"
+  });
   socket.emit("updateHostRoom", Utils.getRoomReadyForSending(rooms[roomId]));
 }
 
