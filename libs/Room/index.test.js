@@ -1,5 +1,6 @@
 const Room = require("./index");
 let teamColors = ["dodgerblue", "Fuchsia", "palegoldenrod", "lime"];
+const testQuestions = require("../Questions/data5");
 
 let newRoom;
 
@@ -110,4 +111,42 @@ describe("Room Methods", () => {
     newRoom.updatePictureAnswerStrings(team, "ben");
     expect(newRoom.pictureAnswerStrings[team] === "poo").toBe(false);
   });
+
+  it("should push teams to array", () => {
+    let testNumber = 3;
+    for (let i = 0; i < testNumber; i++) {
+      newRoom.teamsThatHaveSubmitted.push("team");
+    }
+    expect(newRoom.teamsThatHaveSubmitted.length).toEqual(testNumber);
+  });
+
+  it("should teams that have sumbitted reset At Beggining O Round", () => {
+    newRoom.teamsThatHaveSubmitted.push("team");
+    newRoom.teamsThatHaveSubmitted.push("team");
+    newRoom.teamsThatHaveSubmitted.push("team");
+    newRoom.resetAtBegginingOfRound();
+    expect(newRoom.teamsThatHaveSubmitted.length).toEqual(0);
+  });
+
+  it("should add cards to cards", () => {
+    let testCards = testQuestions[0].cards;
+    newRoom.keepReferenceOfCurrentCards(testCards);
+
+    expect(newRoom.currentQuestionCards).toEqual(testCards);
+  });
+  it("should clear cards at end of round", () => {
+    let testCards = testQuestions[0].cards;
+    newRoom.keepReferenceOfCurrentCards(testCards);
+    newRoom.resetAtBegginingOfRound();
+
+    expect(newRoom.currentQuestionCards).toEqual([]);
+  });
 });
+
+// describe("label", () => {
+//   it("should", () => {
+//     const expected = 0;
+//     const actual = 0;
+//     expect(expected).toBe(actual);
+//   });
+// });

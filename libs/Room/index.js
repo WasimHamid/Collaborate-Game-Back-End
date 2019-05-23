@@ -21,19 +21,21 @@ if (!Array.prototype.flat) {
 function Room(numberOfTeams, roomId, uid) {
   this.id = roomId;
   this.name = `room name`;
+  this.host = uid;
+
   this.teams = {};
   this.teamsArray = [];
-  this.scores = {};
-  // this.roundScores = {};
   this.players = [];
+
+  this.scoresTotal = {};
+  this.scoresArray = {};
+
+  this.teamsThatHaveSubmitted = [];
+
   this.questionNumber = 0;
-  this.host = uid;
+  this.currentQuestionCards = [];
   this.currentChoice = {};
   this.currentChoiceCopy = {};
-  this.teamsThatHaveSubmitted = [];
-  this.currentQuestion = [];
-  this.scoresForEachRound = {};
-  this.scoresArray = {};
   this.pictureAnswerStrings = {};
   this.pictureAnswerStringsCopy = {};
   this.answerFeedback = {};
@@ -60,8 +62,7 @@ function Room(numberOfTeams, roomId, uid) {
 
     this.teamsArray.push(teamColors[i]);
 
-    this.scores = { ...this.scores, [teamColors[i]]: 0 };
-    // this.roundScores = { ...this.scores, [teamColors[i]]: 0 };
+    this.scoresTotal = { ...this.scoresTotal, [teamColors[i]]: 0 };
 
     this.currentChoice = {
       ...this.currentChoice,
@@ -74,9 +75,10 @@ function Room(numberOfTeams, roomId, uid) {
   }
 }
 
+// test started
 Room.prototype.resetAtBegginingOfRound = function() {
   this.teamsThatHaveSubmitted = [];
-  this.currentQuestion = [];
+  this.currentQuestionCards = [];
   this.answerFeedback = this.answerFeedbackCopy;
   this.currentChoice = this.currentChoiceCopy;
   this.pictureAnswerStrings = this.pictureAnswerStringsCopy;
@@ -111,7 +113,6 @@ Room.prototype.markOrderQuestion = function(team) {
       this.currentChoice[team][answerKey][0].correctAnswer
     ) {
       this.addToCurrentScore(team, points);
-      // this.roundScores[team] += points;
       this.answerFeedback[team].push({ color: "lightgreen", points });
     } else {
       this.answerFeedback[team].push({ color: "red", points: 0 });
@@ -141,7 +142,7 @@ Room.prototype.addCurrentScoresToScoresArray = function() {
 //test in place
 Room.prototype.addScoresArrayTotalToScore = function() {
   this.teamsArray.map(team => {
-    this.scores[team] = this.getTotalScoreForTeam(team).score;
+    this.scoresTotal[team] = this.getTotalScoreForTeam(team).score;
   });
 };
 
@@ -166,10 +167,6 @@ Room.prototype.getTotalScoreForTeam = function(team) {
 };
 
 // Room.prototype.addBonusForFastestCorrect = function(team, bonus) {
-//   this.scoresArray[team][this.questionNumber] = {
-//     ...this.scoresArray[team][this.questionNumber],
-//     score: this.scoresForEachRound[team][this.questionNumber] + bonus
-//   };
 // };
 
 // test in place
@@ -270,13 +267,8 @@ Room.prototype.updateCardOptions = function(
   }
 };
 
-// Room.prototype.addRoundsToTotalAndResetForTeam = function(team) {
-//   this.scores[team] += this.roundScores[team];
-//   this.roundScores[team] = 0;
-// };
-
-Room.prototype.addToCurrentQuestion = function(cards) {
-  this.currentQuestion = cards;
+Room.prototype.keepReferenceOfCurrentCards = function(cards) {
+  this.currentQuestionCards = cards;
 };
 
 module.exports = Room;
