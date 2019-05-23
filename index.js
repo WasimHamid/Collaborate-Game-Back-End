@@ -12,7 +12,7 @@ const scoreBoardTimeout = 9000;
 const roundCardTimeout = 6000;
 const questionSeconds = 3;
 const answerSeconds = 30;
-const hostAnswerTimeout = 5000;
+const hostAnswerTimeout = 7000;
 const pauseFactor = 1500;
 
 // this calls onConnection when user connects
@@ -79,8 +79,8 @@ function login(socket, uid) {
   console.log("user logged in: ", uid);
 
   // if host then push game room
-  Object.keys(rooms).map(room => {
-    if (rooms[room].host === uid) {
+  Object.keys(rooms).map(roomId => {
+    if (rooms[roomId].host === uid) {
       console.log("a host has appeard");
 
       io.in(uid).emit(
