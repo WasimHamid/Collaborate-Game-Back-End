@@ -23,7 +23,13 @@ function getNewRoomId() {
   return Math.floor(Math.random() * 9000 + 1000);
 }
 
+function getRoomReadyForSending(room) {
+  const { intervalIdCountdown, intervalIdRound, ...dataToSend } = room;
+  return dataToSend;
+}
+
 module.exports = {
   getShuffledArray,
-  getNewRoomId
+  getNewRoomId,
+  getRoomReadyForSending
 };
