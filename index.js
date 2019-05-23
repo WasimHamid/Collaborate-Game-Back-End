@@ -256,7 +256,9 @@ function sendQuestion(socket, roomId, questionNumber = 0) {
 
   if (testQuestions[questionNumber].questionType === "order") {
     console.log("question type order");
-    rooms[roomId].addToCurrentQuestion(testQuestions[questionNumber].cards);
+    rooms[roomId].keepReferenceOfCurrentCards(
+      testQuestions[questionNumber].cards
+    );
 
     rooms[roomId].teamsArray.map(team => {
       rooms[roomId].teams[team].map((player, i) => {
