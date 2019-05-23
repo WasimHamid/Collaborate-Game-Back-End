@@ -193,6 +193,7 @@ function startGameLoop(socket, roomId) {
     // finish game here
     // clearInterval(rooms[roomId].intervalIdCountdown);
     // clearInterval(rooms[roomId].intervalIdRound);
+    console.log("game finished");
     io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
       path: "/host/endpage"
     });
