@@ -1,7 +1,7 @@
 module.exports = [
   {
     question: "Put these botcampers in age order",
-    roundinfo: "old news",
+    roundinfo: "Old News",
     cards: [
       { text: "Aiden", order: 4 },
       { text: "Kathryn", order: 1 },
@@ -13,107 +13,64 @@ module.exports = [
   },
 
   {
-    question: "Whos birthday is soonest",
-    roundinfo: "Sing it, baby",
+    question: "Whos Birthday is Soonest",
+    roundinfo: "Born Identity",
     cards: [
-      { text: "Ben", order: 1 },
-      { text: "Brendan", order: 2 },
-      { text: "Kim", order: 3 },
-      { text: "Wasim", order: 4 }
+      { text: "Ben", order: 2 },
+      { text: "Brendan", order: 4 },
+      { text: "Stuart", order: 3 },
+      { text: "Wasim", order: 1 }
     ],
     instruction: ["soonest", "least soon"],
     questionType: "order"
   },
 
   {
-    question:
-      "Put your phones together to figure out what this image is, then type the answer in the text box",
-    roundinfo: "Jigsaw pictionary, anyone?",
+    question: "What is this persons first name?",
+    roundinfo: "Jigsaw Pictionary",
     cards: [
-      { url: "https://i.imgur.com/2kKRCfA.jpg" },
-      { url: "https://i.imgur.com/OlVIh9Q.jpg" },
-      { url: "https://i.imgur.com/9xf086M.jpg?1" },
-      { url: "https://i.imgur.com/YfC9trH.jpg" }
+      { url: "https://i.imgur.com/2vVvmOz.jpg" },
+      { url: "https://i.imgur.com/UlM1UEh.jpg" },
+      { url: "https://i.imgur.com/yG5Z7KJ.jpg" },
+      { url: "https://i.imgur.com/VC91LQp.jpg" }
     ],
-    answer: "DOG",
+    answer: "ALEX",
     questionType: "picture"
   },
 
   {
-    question: "Which is fastest?",
-    roundinfo: "run, baby, run",
+    question: "css prowess: likes it the most to hates it the most",
+    roundinfo: "Cascading Style Shits",
     cards: [
-      { text: "70 km per hour", order: 1 },
-      { text: "55  miles per hour", order: 2 },
-      { text: "100 knots", order: 3 },
-      { text: "1 lightyear", order: 4 }
+      { text: "matt", order: 1 },
+      { text: "manu", order: 2 },
+      { text: "alex", order: 3 },
+      { text: "bukola", order: 4 }
     ],
-    instruction: ["slowest", "fastest"],
+    instruction: ["loves most", "hates most"],
     questionType: "order"
   },
-
   {
-    question:
-      "Put your phones together to figure out what this image is, then type the answer in the text box",
-    roundinfo: "I can't see, it's so dark in here!",
+    question: "where are they from? born furthest away to nearest:",
+    roundinfo: "Born Ultimatum",
+    cards: [
+      { text: "manu", order: 1 },
+      { text: "kim", order: 2 },
+      { text: "robyn", order: 3 },
+      { text: "stu", order: 4 }
+    ],
+    instruction: ["furthest", "nearest"],
+    questionType: "order"
+  },
+  {
+    question: "What is this persons first name?",
+    roundinfo: "Jigtionary... Y Not?",
     cards: [
       { url: "https://i.imgur.com/jsorCzo.jpg" },
       { url: "https://i.imgur.com/PowPXCp.jpg" },
       { url: "https://i.imgur.com/gS0LOYY.jpg" },
       { url: "https://i.imgur.com/naLAgDX.jpg" }
     ],
-    answer: "HARRY POTTER"
-  },
-
-  {
-    question: "Order these UK counties by their populations",
-    roundinfo: "Oi, get outta my way!",
-    cards: [
-      { text: "West Midlands", order: 1 },
-      { text: "Greater Manchester", order: 2 },
-      { text: "Merseyside", order: 3 },
-      { text: "South Yorkshire", order: 4 }
-    ],
-    instruction: ["fewest people", "most people"],
-    questionType: "order"
-  },
-
-  {
-    question: "List the Top 5 Family Cars of the 1950s",
-    roundinfo: "Beep! Beep! Toot! Toot!",
-    cards: [
-      { text: "Morris Minor", order: 1 },
-      { text: "Standar Vanguard", order: 2 },
-      { text: "Ford Popular and Anglia", order: 3 },
-      { text: "Vauxhall PA Velox and Cresta", order: 4 }
-    ],
-    instruction: ["most sold", "fewest sold"],
-    questionType: "order"
-  },
-
-  {
-    question: "what is this a picture of?",
-    roundinfo: "I spy with my little eye...",
-    cards: [
-      { url: "https://i.imgur.com/EDKgovy.png" },
-      { url: "https://i.imgur.com/QgVov93.png" },
-      { url: "https://i.imgur.com/UcMoyhn.png" },
-      { url: "https://i.imgur.com/dDN8mQS.png" }
-    ],
-    answer: "ROBOT",
-    questionType: "picture"
-  },
-
-  {
-    question: "Who is the most timely bootcamper, and who shows up late?",
-    roundinfo: "Class starts at 9 sharp!",
-    cards: [
-      { text: "Jonny", order: 1 },
-      { text: "Olivia", order: 2 },
-      { text: "Wasim", order: 3 },
-      { text: "Jazz", order: 4 }
-    ],
-    instruction: ["earliest to class", "latest to class"],
-    questionType: "order"
+    answer: "KATHRYN"
   }
 ];
