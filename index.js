@@ -2,7 +2,7 @@ var app = require("express")();
 var http = require("http").Server(app);
 var io = require("socket.io")(http);
 
-const testQuestions = require("./pictureRound");
+const testQuestions = require("./libs/Questions");
 const Room = require("./libs/Room");
 const Utils = require("./libs/Utils");
 let rooms = {};
