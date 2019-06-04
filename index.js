@@ -101,6 +101,22 @@ function login(socket, uid) {
         "makeGameRoom",
         Utils.getRoomReadyForSending(rooms[roomId])
       );
+    } else if (rooms[roomId].isPlayerInPlayersArray(uid)) {
+      console.log("player rejoins");
+      socket.join(uid);
+      if (rooms[roomId].isGameLive) {
+        let team = rooms[roomId].getPlayersTeam(uid);
+
+        io.to(userIds[uid].currentSocket).emit("messageAndNav", {
+          message: `you are still in the ${team} team. The game is live!`,
+          path: "/play/message"
+        });
+        io.to(userIds[uid].currentSocket).emit("teamColor", team);
+        io.to(userIds[uid].currentSocket).emit("roomNumber", roomId);
+        if (rooms[roomId].isPlayerATeamCaptain(uid)) {
+          io.to(userIds[uid].currentSocket).emit("teamCaptain");
+        }
+      }
     }
   });
 }
@@ -134,45 +150,6 @@ function makeGameRoom(socket, { numberOfTeams, uid }) {
   console.log(`new room ${newRoom.id} has been created`);
 }
 
-// function enterGameRoom(socket, { roomId, uid }) {
-console.log("enterGameRoom");
-// 	console.log("user id object", { roomId, uid });
-// 	console.log("is player in room", rooms[roomId].isPlayerInRoom(uid));
-
-// 	if (rooms[roomId]) {
-// 		if (rooms[roomId].isPlayerInRoom(uid)) {
-// 			let team = rooms[roomId].getPlayersTeam(uid);
-// 			console.log("get players team", team);
-// 			console.log("rooms[roomId]", rooms[roomId]);
-// 			socket.emit("enterGameRoom", Utils.getRoomReadyForSending(rooms[roomId]));
-// 			console.log("after emit game room");
-// 			socket.emit("messageAndNav", {
-// 				message: `you are in the ${team} team in room ${roomId}`,
-// 				path: "/play/holding"
-// 			});
-// 			console.log("after message and nav");
-// 			socket.emit("teamColor", team);
-// 			console.log("after team color");
-// 			socket.join(roomId);
-// 			console.log("after socket .join");
-// 		} else {
-// 			socket.emit("enterGameRoom", rooms[roomId]);
-// 			socket.emit(
-// 				"gameMessage",
-// 				`Welcome to ${roomId}! please enter your name and join a team`
-// 			);
-// 			socket.join(roomId);
-// 			console.log(socket.uid + " has joined " + roomId);
-// 		}
-// 	} else {
-// 		socket.emit(
-// 			"gameMessage",
-// 			`Sorry we couldn't find ${roomId}, please try again`
-// 		);
-// 	}
-// 	console.log("made it to the end of makeGameRoom");
-// }
-
 function newEnterGameRoom(socket, { roomId, uid, name = "anon" }) {
   console.log("newEnterGameRoom");
   // is player in room ?
@@ -201,23 +178,6 @@ function newEnterGameRoom(socket, { roomId, uid, name = "anon" }) {
     // tell them they got it wrong
   }
 }
-
-// function joinTeam(socket, { roomId, team, name, uid }) {
-console.log("joinTeam");
-// 	if (!rooms[roomId].isPlayerInRoom()) {
-// 		rooms[roomId].addPlayerToTeam(team, name, uid);
-// 		socket.join(uid);
-// 		socket.emit("gameMessage", `you are in the ${team} team in room ${roomId}`);
-// 		socket.emit("teamColor", team);
-
-// 		io.in(userIds[rooms[roomId].host].currentSocket).emit(
-// 			"updateHostRoom",
-// 			Utils.getRoomReadyForSending(rooms[roomId])
-// 		);
-// 		console.log(`${name} has joined ${roomId}`);
-// 		console.log(rooms[roomId].teams);
-// 	}
-// }
 
 function putPlayersInTeamsAndSendMessage(socket, roomId) {
   console.log("putPlayersInTeamsAndSendMessage");
@@ -286,8 +246,6 @@ function startGameLoop(socket, roomId) {
     );
   } else {
     // finish game here
-    // clearInterval(rooms[roomId].intervalIdCountdown);
-    // clearInterval(rooms[roomId].intervalIdRound);
     console.log("game finished");
     io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
       path: "/host/endpage"
@@ -538,30 +496,6 @@ function updateCardOptions(
   }
 }
 
-// function onLivePictureTextInput(socket, { roomId, team, text }) {
-console.log("onLivePictureTextInput");
-// 	console.log(roomId, team, text);
-
-// 	rooms[roomId].updatePictureAnswerStrings(team, text);
-
-// 	if (rooms[roomId].pictureAnswerStrings[team].length > 1) {
-// 		rooms[roomId].teams[team].map(player => {
-// 			io.in(userIds[player.id].currentSocket).emit("submitAllowed", true);
-// 		});
-// 	} else {
-// 		rooms[roomId].teams[team].map(player => {
-// 			io.in(userIds[player.id].currentSocket).emit("submitAllowed", false);
-// 		});
-// 	}
-
-// 	rooms[roomId].teams[team].map(player => {
-// 		io.in(userIds[player.id].currentSocket).emit(
-// 			"livePictureAnswer",
-// 			rooms[roomId].pictureAnswerStrings[team]
-// 		);
-// 	});
-// }
-
 function onTeamSubmit(socket, { roomId, team, answer }) {
   console.log("onTeamSubmit");
   if (rooms[roomId].teamsThatHaveSubmitted.includes(team)) {
@@ -573,10 +507,6 @@ function onTeamSubmit(socket, { roomId, team, answer }) {
     "liveTeamSubmitUpdate",
     rooms[roomId].teamsThatHaveSubmitted
   );
-
-  // rooms[roomId].teams[team].map(player => {
-  // 	io.in(userIds[player.id].currentSocket).emit("submitAllowed", false);
-  // });
 
   if (rooms[roomId].haveAllTeamsSubmitted()) {
     // trigger next thing
