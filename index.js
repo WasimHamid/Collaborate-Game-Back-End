@@ -3,7 +3,7 @@ var http = require("http").Server(app);
 var io = require("socket.io")(http);
 var app = express();
 
-const testQuestions = require("./libs/Questions/data6");
+const testQuestions = require("./libs/Questions/data7");
 const Room = require("./libs/Room");
 const Utils = require("./libs/Utils");
 let rooms = {};
@@ -181,10 +181,12 @@ function newEnterGameRoom(socket, { roomId, uid, name = "anon" }) {
 
 function putPlayersInTeamsAndSendMessage(socket, roomId) {
   console.log("putPlayersInTeamsAndSendMessage");
-  rooms[roomId].putPlayersInTeams();
 
-  rooms[roomId].teamsArray.map(team =>
-    rooms[roomId].teams[team].map(player => {
+  const currentRoom = rooms[roomId];
+  currentRoom.putPlayersInTeams();
+
+  currentRoom.teamsArray.map(team =>
+    currentRoom.teams[team].map(player => {
       io.to(userIds[player.id].currentSocket).emit("messageAndNav", {
         message: `you are in the ${team} team. Go and find your team mates`,
         path: "/play/message"
@@ -193,16 +195,22 @@ function putPlayersInTeamsAndSendMessage(socket, roomId) {
     })
   );
 
-  rooms[roomId].teamsArray.map(team => {
-    io.to(userIds[rooms[roomId].teams[team][0].id].currentSocket).emit(
+  currentRoom.teamsArray.map(team => {
+    io.to(userIds[currentRoom.teams[team][0].id].currentSocket).emit(
       "teamCaptain"
     );
   });
 
-  io.in(userIds[rooms[roomId].host].currentSocket).emit(
+  const host = userIds[currentRoom.host];
+  io.in(host.currentSocket).emit(
     "updateHostRoom",
-    Utils.getRoomReadyForSending(rooms[roomId])
+    Utils.getRoomReadyForSending(currentRoom)
   );
+
+  io.to(host.currentSocket).emit("messageAndNav", {
+    message: ``,
+    path: "/host/gofindteam"
+  });
 }
 
 function startGameFirstTime(socket, roomId) {

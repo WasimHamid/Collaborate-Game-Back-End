@@ -1,5 +1,5 @@
 let teamColors = ["dodgerblue", "Fuchsia", "palegoldenrod", "lime"];
-let testQuestions = require("../Questions/data6");
+let testQuestions = require("../Questions/data7");
 let Utils = require("../Utils");
 
 // Polyfill for Array.flat()
