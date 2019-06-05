@@ -389,7 +389,7 @@ function roundTimer(socket, roomId) {
       });
 
       count--;
-    } else {
+    } else if (!rooms[roomId].haveAllTeamsSubmitted()) {
       // go to score page
       endRoundAndShowAnswer(socket, roomId);
     }
