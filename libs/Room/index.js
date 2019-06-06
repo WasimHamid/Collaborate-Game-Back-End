@@ -1,5 +1,5 @@
 let teamColors = ["dodgerblue", "Fuchsia", "palegoldenrod", "lime"];
-let testQuestions = require("../Questions/data7");
+let testQuestions = require("../Questions/data6");
 let Utils = require("../Utils");
 
 // Polyfill for Array.flat()
@@ -154,7 +154,7 @@ Room.prototype.addCurrentScoresToScoresArray = function() {
 //test in place
 Room.prototype.addScoresArrayTotalToScore = function() {
   this.teamsArray.map(team => {
-    this.scoresTotal[team] = this.getTotalScoreForTeam(team).score;
+    this.scoresTotal[team] = this.getTotalScoreForTeam(team);
   });
 };
 
@@ -168,6 +168,7 @@ Room.prototype.getCurrentScore = function(team) {
   return this.currentScore[team];
 };
 
+
 // Room.prototype.getScoreForCurrentRound = function(team) {
 //   return this.scoresArray[team][this.questionNumber].score;
 // };
@@ -175,7 +176,7 @@ Room.prototype.getCurrentScore = function(team) {
 Room.prototype.getTotalScoreForTeam = function(team) {
   return this.scoresArray[team].slice().reduce((a, b) => ({
     score: a.score + b.score
-  }));
+  })).score;
 };
 
 // Room.prototype.addBonusForFastestCorrect = function(team, bonus) {
