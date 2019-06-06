@@ -111,18 +111,24 @@ Room.prototype.markOrderQuestion = function(team) {
   console.log("current question cards", this.currentQuestionCards);
   console.log("current choices", this.currentChoice[team]);
 
-  answerKeyArray.map(answerKey => {
+  answerKeyArray.forEach(answerKey => {
     if (this.currentChoice[team][answerKey].length !== 1) {
-      this.answerFeedback[team].push({ color: "black", points: 0 });
-    } else if (
-      this.currentChoice[team][answerKey][0].cardText ===
-      this.currentQuestionCards.find(({ order }) => order === answerKey).text
+      return this.answerFeedback[team].push({ color: "black", points: 0 });
+    }
+
+    const answer = this.currentQuestionCards.find(
+      ({ order }) => order === answerKey
+    );
+
+    if (
+      answer &&
+      this.currentChoice[team][answerKey][0].cardText === answer.text
     ) {
       this.addToCurrentScore(team, points);
-      this.answerFeedback[team].push({ color: "lightgreen", points });
-    } else {
-      this.answerFeedback[team].push({ color: "red", points: 0 });
+      return this.answerFeedback[team].push({ color: "lightgreen", points });
     }
+
+    this.answerFeedback[team].push({ color: "red", points: 0 });
   });
 };
 
