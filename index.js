@@ -3,7 +3,7 @@ var http = require("http").Server(app);
 var io = require("socket.io")(http);
 var app = express();
 
-const testQuestions = require("./libs/Questions/data7");
+const testQuestions = require("./libs/Questions/data6");
 const Room = require("./libs/Room");
 const Utils = require("./libs/Utils");
 let rooms = {};
@@ -23,7 +23,7 @@ let isGamePaused = false;
 io.on("connection", onConnection);
 
 // this sets op socket to listen and calls each function when it hears the socket id
-console.log("when");
+
 function onConnection(socket) {
   console.log("onConnection");
   console.log("a user connected");
@@ -97,24 +97,21 @@ function login(socket, uid) {
     if (rooms[roomId].host === uid) {
       console.log("a host has appeard");
 
-      io.in(uid).emit(
-        "makeGameRoom",
-        Utils.getRoomReadyForSending(rooms[roomId])
-      );
+      socket.emit("makeGameRoom", Utils.getRoomReadyForSending(rooms[roomId]));
     } else if (rooms[roomId].isPlayerInPlayersArray(uid)) {
       console.log("player rejoins");
       socket.join(uid);
       if (rooms[roomId].isGameLive) {
         let team = rooms[roomId].getPlayersTeam(uid);
 
-        io.to(userIds[uid].currentSocket).emit("messageAndNav", {
+        socket.emit("messageAndNav", {
           message: `you are still in the ${team} team. The game is live!`,
           path: "/play/message"
         });
-        io.to(userIds[uid].currentSocket).emit("teamColor", team);
-        io.to(userIds[uid].currentSocket).emit("roomNumber", roomId);
+        socket.emit("teamColor", team);
+        socket.emit("roomNumber", roomId);
         if (rooms[roomId].isPlayerATeamCaptain(uid)) {
-          io.to(userIds[uid].currentSocket).emit("teamCaptain");
+          socket.emit("teamCaptain");
         }
       }
     }
@@ -134,7 +131,7 @@ function removeUser(socket, { roomId, team, uid, i }) {
   socket.emit("updateHostRoom", Utils.getRoomReadyForSending(rooms[roomId]));
 }
 
-function makeGameRoom(socket, { numberOfTeams, uid }) {
+function makeGameRoom(socket, { uid }) {
   console.log("makeGameRoom");
   let newRoom = new Room(Utils.getNewRoomId(), uid);
 
@@ -252,12 +249,6 @@ function startGameLoop(socket, roomId) {
       () => sendQuestionToHostWithCountdown(socket, roomId),
       roundCardTimeout
     );
-  } else {
-    // finish game here
-    console.log("game finished");
-    io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
-      path: "/host/endpage"
-    });
   }
 }
 
@@ -385,8 +376,8 @@ function roundTimer(socket, roomId) {
         return;
       }
       // send counter to players
-      rooms[roomId].teamsArray.map(team => {
-        rooms[roomId].teams[team].map((player, i) => {
+      rooms[roomId].teamsArray.forEach(team => {
+        rooms[roomId].teams[team].forEach((player, i) => {
           io.in(userIds[player.id].currentSocket).emit("updateCounter", {
             round: count
           });
@@ -443,7 +434,32 @@ function endRoundAndShowAnswer(socket, roomId) {
       console.log("switch has not recieved valid question type");
   }
 
-  setTimeout(() => showScore(socket, roomId), hostAnswerTimeout);
+  if (rooms[roomId].questionNumber < testQuestions.length - 1) {
+    setTimeout(() => showScore(socket, roomId), hostAnswerTimeout);
+  } else {
+    setTimeout(() => goToEndPage(socket, roomId), hostAnswerTimeout);
+  }
+}
+
+function goToEndPage(socket, roomId) {
+  console.log("game finished");
+  
+   sendUpdatedScore(socket, roomId);
+  const currentRoom = rooms[roomId];
+  io.in(userIds[currentRoom.host].currentSocket).emit("messageAndNav", {
+    path: "/host/endpage"
+  });
+
+  currentRoom.teamsArray.forEach(team => {
+    currentRoom.teams[team].forEach(player => {
+      io.in(player.id).emit("messageAndNav", {
+        path: "/play/message",
+        message: `Congratulations! In total you scored ${
+          currentRoom.scoresTotal[team]
+        }. But was it good enough?`
+      });
+    });
+  });
 }
 
 function showScore(socket, roomId) {
@@ -460,10 +476,14 @@ function sendUpdatedScore(socket, roomId) {
   console.log("sendUpdatedScore");
   rooms[roomId].updateScoresAtEndOfRound();
 
-  io.in(userIds[rooms[roomId].host].currentSocket).emit(
-    "updateHostRoom",
-    Utils.getRoomReadyForSending(rooms[roomId])
-  );
+   io.in(userIds[rooms[roomId].host].currentSocket).emit(
+        "updateHostRoom",
+        Utils.getRoomReadyForSending(rooms[roomId])
+      );
+  // io.in(userIds[rooms[roomId].host].currentSocket).emit(
+  //   "updateHostRoom",
+  //   Utils.getRoomReadyForSending(rooms[roomId])
+  // );
 }
 
 function deleteGameRoom(socket, roomId) {
@@ -563,6 +583,12 @@ function checkAnswersForOrderRound(roomId, team) {
       feedback: rooms[roomId].getAnswerFeedback(team)
     });
   });
+}
+
+
+function updateHost(roomId){
+const currentRoom = rooms[roomId]
+  io.in(userIds[currentRoom.host].currentSocket).emit("updateHostRoom", Utils.getRoomReadyForSending(rooms[roomId]));
 }
 
 http.listen(process.env.PORT || 6001, () => {
