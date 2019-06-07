@@ -235,6 +235,7 @@ function startGameLoop(socket, roomId) {
 		io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
 			message: currentQuestion.roundinfo,
 			roundNumber: currentQuestionNumber,
+			questionType: currentQuestion.questionType,
 			path: "/host/roundcard"
 		});
 
