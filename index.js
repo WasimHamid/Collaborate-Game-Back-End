@@ -264,12 +264,12 @@ function endGamePrematurely(socket, roomId) {
 
 function sendQuestionToHostWithCountdown(socket, roomId) {
 	console.log("sendQuestionToHostWithCountdown");
+	countDownWhileQuestionShown(socket, roomId);
+
 	io.in(userIds[rooms[roomId].host].currentSocket).emit("messageAndNav", {
 		message: testQuestions[rooms[roomId].questionNumber].question,
 		path: "/host/question"
 	});
-
-	countDownWhileQuestionShown(socket, roomId);
 }
 
 function countDownWhileQuestionShown(socket, roomId) {
