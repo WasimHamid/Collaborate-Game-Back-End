@@ -3,18 +3,18 @@ var http = require("http").Server(app);
 var io = require("socket.io")(http);
 var app = express();
 
-const testQuestions = require("./libs/Questions/data7");
+const testQuestions = require("./libs/Questions/presentation");
 const Room = require("./libs/Room");
 const Utils = require("./libs/Utils");
 let rooms = {};
 let userIds = {};
 
 const scoreBoardTimeout = 9500;
-const roundCardTimeout = 6000;
+const roundCardTimeout = 6500;
 const questionSeconds = 3;
 const answerSeconds = 30;
 const hostAnswerTimeout = 7000;
-const pauseFactor = 1500;
+const pauseFactor = 1000;
 const findTeammatesTimout = 15000;
 
 let isGamePaused = false;
@@ -188,6 +188,8 @@ function newEnterGameRoom(socket, { roomId, uid, name = "anon" }) {
 }
 
 function putPlayersInTeamsAndSendMessage(socket, roomId) {
+
+
     console.log("putPlayersInTeamsAndSendMessage");
 
     const currentRoom = rooms[roomId];
@@ -197,7 +199,7 @@ function putPlayersInTeamsAndSendMessage(socket, roomId) {
         currentRoom.teams[team].map(player => {
             io.to(userIds[player.id].currentSocket).emit("messageAndNav", {
                 message: `You are in the ${team} team. Go and find your team mates`,
-                path: "/play/message"
+                path: "/play/findteam"
             });
             io.to(userIds[player.id].currentSocket).emit("teamColor", team);
         })
@@ -219,6 +221,7 @@ function putPlayersInTeamsAndSendMessage(socket, roomId) {
         message: ``,
         path: "/host/gofindteam"
     });
+
 }
 
 function startGameFirstTime(socket, roomId) {
