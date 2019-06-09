@@ -116,7 +116,7 @@ function login(socket, uid) {
                 let team = rooms[roomId].getPlayersTeam(uid);
 
                 socket.emit("messageAndNav", {
-                    message: `you are still in the ${team} team. The game is live!`,
+                    message: `You are still in the ${team} team. The game is live!`,
                     path: "/play/message"
                 });
                 socket.emit("teamColor", team);
@@ -432,7 +432,7 @@ function endRoundAndShowAnswer(socket, roomId) {
                     {
                         message: `Well done! you scored ${rooms[
                             roomId
-                        ].getCurrentScore(team)}points.`
+                        ].getCurrentScore(team)} points.`
                     }
                 );
             } else {
@@ -487,7 +487,7 @@ function goToEndPage(socket, roomId) {
                 path: "/play/message",
                 message: `Congratulations! In total you scored ${
                     currentRoom.scoresTotal[team]
-                }points, but was it good enough?`
+                } points, but was it good enough?`
             });
         });
     });
