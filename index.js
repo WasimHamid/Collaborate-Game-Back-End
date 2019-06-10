@@ -92,8 +92,7 @@ function login(socket, uid) {
   // if host then push game room
   Object.keys(rooms).map(roomId => {
     if (rooms[roomId].host === uid) {
-      console.log("a host has appeard");
-
+      console.log("a host has appeared");
       socket.emit("makeGameRoom", Utils.getRoomReadyForSending(rooms[roomId]));
     } else if (rooms[roomId].isPlayerInPlayersArray(uid)) {
       console.log("player rejoins");
@@ -110,6 +109,12 @@ function login(socket, uid) {
         if (rooms[roomId].isPlayerATeamCaptain(uid)) {
           socket.emit("teamCaptain");
         }
+      } else {
+        socket.emit("roomNumber", roomId);
+        socket.emit("messageAndNav", {
+          message: `You are logged in. When the game starts you will be given a team`,
+          path: "/play/message"
+        });
       }
     }
   });
